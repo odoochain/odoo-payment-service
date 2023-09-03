@@ -14,15 +14,20 @@ class SmsProvider(models.Model):
     _name = 'sms.provider'
     _description = 'SMS Providers'
     _order = 'sequence'
-    _rec_name = 'type'
 
     active = fields.Boolean(default=True)
     sequence = fields.Integer(string='Priority', default=10)
-    company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company)
+    company_id = fields.Many2one('res.company', ondelete='cascade', string='Company', default=lambda self: self.env.company)
     type = fields.Selection([], string='Provider')
     username = fields.Char(required=True)
     password = fields.Char(required=True)
     originator = fields.Char()
+
+    def name_get(self):
+        return [(provider.id, provider._name_get()) for provider in self]
+ 
+    def _name_get(self):
+        return self.type.capitalize()
 
     _sql_constraints = [
         ('company_provider_unique', 'unique (company_id, provider)', 'Provider must be unique per company'),
@@ -89,6 +94,9 @@ class SmsApi(models.AbstractModel):
     @api.model
     def _send_sms(self, numbers, message):
         provider = self.env['sms.provider'].get().id
+        if not provider:
+            return super(SmsApi, self)._send_sms(numbers, message)
+
         if isinstance(numbers, list):
             vals = [{
                 'res_id': 0,
@@ -110,6 +118,9 @@ class SmsApi(models.AbstractModel):
         results = []
         providers = {message.get('provider') for message in messages}
 
+        if not all(providers):
+            return super(SmsApi, self)._send_sms_batch(messages)
+
         if not providers:
             return results
 
@@ -122,7 +133,6 @@ class SmsApi(models.AbstractModel):
             else:
                 results.extend(super(SmsApi, self)._send_sms_batch(messages))
         return results
-
 
     @api.model
     def _send_sms_api(self, messages, provider):

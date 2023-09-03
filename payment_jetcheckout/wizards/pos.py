@@ -2,9 +2,9 @@
 from odoo import fields, models, api, _
 
 
-class PaymentAcquirerJetcheckoutApiPos(models.TransientModel):
+class PaymentPayloxApiPos(models.TransientModel):
     _name = 'payment.acquirer.jetcheckout.api.pos'
-    _description = 'Jetcheckout Pos'
+    _description = 'Paylox API Pos'
     _remote_name = 'jet.virtual.pos'
 
     acquirer_id = fields.Many2one('payment.acquirer')
@@ -37,6 +37,11 @@ class PaymentAcquirerJetcheckoutApiPos(models.TransientModel):
     priority = fields.Integer('Priority', required=True)
     usage_3d = fields.Selection([('Not Usable','Not Usable'),('Choosable','Choosable'),('Mandatory','Mandatory')], string='3D Usage')
     mode = fields.Selection([('P','Production'),('T','Test')], string='Mode', required=True, default='T')
+    is_physical = fields.Boolean('Physical POS', readonly=True)
+    rates_importable = fields.Boolean('Rates Importable', readonly=True)
+    import_rates = fields.Boolean('Import Commission Rates')
+    calc_cust_rates = fields.Boolean('Calculate Customer Rates')
+    excluded_card_families = fields.Many2many('payment.acquirer.jetcheckout.api.family', 'payment_jetcheckout_api_excluded_pos_rel', 'pos_id', 'family_id', string='Excluded Card Families', domain='[("acquirer_id", "=", acquirer_id)]')
     notes = fields.Text('Notes', readonly=True)
 
     customer_ip = fields.Char()
@@ -91,17 +96,51 @@ class PaymentAcquirerJetcheckoutApiPos(models.TransientModel):
         self.basket_item_desc = self.payment_org_id.basket_item_desc
         self.basket_item_categ = self.payment_org_id.basket_item_categ
 
-class PaymentAcquirerJetcheckoutApiCurrency(models.TransientModel):
-    _name = 'payment.acquirer.jetcheckout.api.currency'
-    _description = 'Jetcheckout API Currency'
+    @api.onchange('calc_cust_rates')
+    def onchange_calc_cust_rates(self):
+        if (isinstance(self._origin.id, int)):
+            self.browse(self._origin.id).write({'calc_cust_rates': True})
 
+    def import_cost_rates(self):
+        self.acquirer_id._rpc('jet.virtual.pos', 'import_cost_rates', self.res_id)
+
+    @api.model
+    def create(self, vals):
+        res = super().create(vals)
+        if 'res_id' not in vals:
+            id = res.acquirer_id._rpc(res._remote_name, 'create', vals)
+            res.write({'res_id': id})
+        return res
+
+    def write(self, vals):
+        res = super().write(vals)
+        if 'res_id' not in vals:
+            for pos in self:
+                pos.acquirer_id._rpc(pos._remote_name, 'write', pos.res_id, vals)
+            self.acquirer_id._paylox_api_sync_campaign()
+        return res
+ 
+    def unlink(self):
+        if not self.env.context.get('no_sync'):
+            for pos in self:
+                pos.acquirer_id._rpc(pos._remote_name, 'unlink', pos.res_id)
+        return super().unlink()
+
+
+class PaymentPayloxApiCurrency(models.TransientModel):
+    _name = 'payment.acquirer.jetcheckout.api.currency'
+    _description = 'Paylox API Currencies'
+
+    acquirer_id = fields.Many2one('payment.acquirer')
     res_id = fields.Integer(readonly=True)
     name = fields.Char(readonly=True)
 
-class PaymentAcquirerJetcheckoutApiProvider(models.TransientModel):
+class PaymentPayloxApiProvider(models.TransientModel):
     _name = 'payment.acquirer.jetcheckout.api.provider'
-    _description = 'Jetcheckout API Provider'
+    _description = 'Paylox API Providers'
+    _remote_name = 'jet.payment.org'
 
+    acquirer_id = fields.Many2one('payment.acquirer')
     res_id = fields.Integer(readonly=True)
     code = fields.Char(readonly=True)
     name = fields.Char(readonly=True)
@@ -141,16 +180,16 @@ class PaymentAcquirerJetcheckoutApiProvider(models.TransientModel):
     shipping_address_city = fields.Char()
     shipping_address_country = fields.Char()
 
-class PaymentAcquirerJetcheckoutApiPoses(models.TransientModel):
+class PaymentPayloxApiPoses(models.TransientModel):
     _name = 'payment.acquirer.jetcheckout.api.poses'
-    _description = 'Jetcheckout Poses'
+    _description = 'Paylox Poses'
 
     acquirer_id = fields.Many2one('payment.acquirer', readonly=True)
     pos_ids = fields.One2many('payment.acquirer.jetcheckout.api.pos', 'parent_id', 'Poses')
     application_id = fields.Char(readonly=True)
 
     def write(self, vals):
-        data = self.acquirer_id._jetcheckout_api_read()
-        self.acquirer_id._jetcheckout_api_upload(vals, data, self)
-        self.acquirer_id._jetcheckout_api_sync_campaign(self.pos_ids)
+        data = self.acquirer_id._paylox_api_read()
+        self.acquirer_id._paylox_api_upload(vals, data, self)
+        self.acquirer_id._paylox_api_sync_campaign()
         return super().write(vals)

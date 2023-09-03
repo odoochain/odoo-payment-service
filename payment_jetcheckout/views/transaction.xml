@@ -4,75 +4,104 @@
     <field name="model">payment.transaction</field>
     <field name="inherit_id" ref="payment.payment_transaction_form"/>
     <field name="arch" type="xml">
-        <div name="button_box" position="inside">
-            <field name="is_jetcheckout" invisible="1"/>
+        <xpath expr="//div[@name='button_box']" position="inside">
+            <field name="is_paylox" invisible="1"/>
+            <field name="jetcheckout_payment_ok" invisible="1"/>
             <button type="object"
-                name="jetcheckout_payment"
+                name="paylox_payment"
                 class="oe_stat_button"
                 icon="fa-money"
                 groups="base.group_user"
-                attrs="{'invisible': ['|','|',('is_jetcheckout','=',False),('state','!=','done'),('payment_id', '!=', False)]}">
+                attrs="{'invisible': ['|', '|', '|', ('is_paylox', '=', False), ('jetcheckout_payment_ok', '=', False), ('state', '!=', 'done'), ('payment_id', '!=', False)]}">
                 <div class="o_form_field o_stat_info mr3">
                     <span class="o_stat_value">Create</span><span class="o_stat_text">Payment</span>
                 </div>
             </button>
             <button type="object"
-                name="jetcheckout_cancel"
+                name="paylox_cancel"
                 class="oe_stat_button"
                 icon="fa-times"
-                groups="base.group_user"
-                attrs="{'invisible': ['|',('is_jetcheckout','=',False),('state', 'in', ('draft','cancel','error'))]}"
+                groups="payment_jetcheckout.group_transaction_cancel"
+                attrs="{'invisible': ['|','|','|',('is_paylox','=',False),('jetcheckout_order_id', '=', False),('source_transaction_id','!=',False),('state', 'in', ('draft','cancel','error','expired'))]}"
                 confirm="Do you confirm cancelling transaction?">
                 <div class="o_form_field o_stat_info mr3">
                     <span class="o_stat_value">Cancel</span><span class="o_stat_text">Transaction</span>
                 </div>
             </button>
             <button type="object"
-                name="jetcheckout_refund"
+                name="paylox_refund"
                 class="oe_stat_button"
                 icon="fa-undo"
-                groups="base.group_user"
-                attrs="{'invisible': ['|',('is_jetcheckout','=',False),('state', 'in', ('draft','cancel','error'))]}">
+                groups="payment_jetcheckout.group_transaction_refund"
+                attrs="{'invisible': ['|','|','|',('is_paylox','=',False),('jetcheckout_order_id', '=', False),('source_transaction_id','!=',False),('state', 'in', ('draft','cancel','error','expired'))]}">
                 <div class="o_form_field o_stat_info mr3">
                     <span class="o_stat_value">Refund</span><span class="o_stat_text">Transaction</span>
                 </div>
             </button>
             <button type="object"
-                name="jetcheckout_query"
+                name="paylox_query"
                 class="oe_stat_button"
                 icon="fa-search"
                 groups="base.group_user"
-                attrs="{'invisible': ['|',('is_jetcheckout','=',False),('jetcheckout_order_id', '=', False)]}">
+                attrs="{'invisible': ['|',('is_paylox','=',False),('jetcheckout_order_id', '=', False)]}">
                 <div class="o_form_field o_stat_info mr3">
                     <span class="o_stat_value">Query</span><span class="o_stat_text">Transaction</span>
                 </div>
             </button>
-        </div>
-        <xpath expr='//group[@name="transaction_partner"]/..' position="after">
-            <group name="transaction_jetcheckout" attrs="{'invisible': [('is_jetcheckout', '=', False)]}">
+        </xpath>
+        <xpath expr="//field[@name='payment_id']" position="attributes">
+            <attribute name="attrs">{'invisible': [('jetcheckout_payment_ok', '=', False)]}</attribute>
+        </xpath>
+        <xpath expr="//field[@name='state']" position="attributes">
+            <attribute name="statusbar_visible">draft,pending,done</attribute>
+        </xpath>
+        <xpath expr="//field[@name='state_message']" position="attributes">
+            <attribute name="colspan">2</attribute>
+        </xpath>
+        <xpath expr="//field[@name='acquirer_id']" position="after">
+            <field name="jetcheckout_website_id" attrs="{'invisible': [('jetcheckout_website_id', '=', False)]}"/>
+        </xpath>
+        <xpath expr="//group[@name='transaction_partner']/.." position="after">
+            <group name="transaction_jetcheckout" attrs="{'invisible': [('is_paylox', '=', False)]}">
                 <group>
                     <field name="jetcheckout_card_name"/>
                     <field name="jetcheckout_card_number"/>
-                    <field name="jetcheckout_payment_amount"/>
-                    <field name="jetcheckout_installment_description"/>
-                    <label for="jetcheckout_commission_rate"/>
-                    <div class="o_row">
+                    <field name="jetcheckout_payment_amount" attrs="{'invisible': [('source_transaction_id', '!=', False)]}"/>
+                    <field name="jetcheckout_installment_description" attrs="{'invisible': [('source_transaction_id', '!=', False)]}"/>
+                    <label for="jetcheckout_commission_rate" attrs="{'invisible': [('source_transaction_id', '!=', False)]}" groups="payment_jetcheckout.group_transaction_commission"/>
+                    <div class="o_row" attrs="{'invisible': [('source_transaction_id', '!=', False)]}" groups="payment_jetcheckout.group_transaction_commission">
                         %<field name="jetcheckout_commission_rate"/>
                     </div>
-                    <field name="jetcheckout_commission_amount"/>
-                    <label for="jetcheckout_customer_rate"/>
-                    <div class="o_row">
+                    <field name="jetcheckout_commission_amount" attrs="{'invisible': [('source_transaction_id', '!=', False)]}" groups="payment_jetcheckout.group_transaction_commission"/>
+                    <label for="jetcheckout_customer_rate" attrs="{'invisible': [('source_transaction_id', '!=', False)]}"/>
+                    <div class="o_row" attrs="{'invisible': [('source_transaction_id', '!=', False)]}">
                         %<field name="jetcheckout_customer_rate"/>
                     </div>
-                    <field name="jetcheckout_customer_amount"/>
+                    <field name="jetcheckout_customer_amount" attrs="{'invisible': [('source_transaction_id', '!=', False)]}"/>
                 </group>
                 <group>
                     <field name="jetcheckout_card_type"/>
                     <field name="jetcheckout_card_family"/>
-                    <field name="jetcheckout_vpos_name"/>
-                    <field name="jetcheckout_ip_address"/>
-                    <field name="jetcheckout_order_id"/>
-                    <field name="jetcheckout_transaction_id"/>
+                    <label for="jetcheckout_vpos_name"/>
+                    <div class="o_row">
+                        <field name="jetcheckout_vpos_name"/>
+                        <span class="ml-2 font-italic text-muted" groups="base.group_no_one" attrs="{'invisible': [('jetcheckout_vpos_ref', 'in', (False, ''))]}">
+                            (<field name="jetcheckout_vpos_ref"/>)
+                        </span>
+                        <span class="ml-2 font-italic text-muted" groups="base.group_no_one" attrs="{'invisible': [('jetcheckout_vpos_ref', 'not in', (False, ''))]}">
+                            (No Reference)
+                        </span>
+                    </div>
+                    <field name="jetcheckout_ip_address" attrs="{'invisible': [('source_transaction_id', '!=', False)]}"/>
+                    <field name="jetcheckout_order_id" attrs="{'invisible': [('source_transaction_id', '!=', False)]}"/>
+                    <label class="o_settings_left_pane" for="jetcheckout_transaction_id" attrs="{'invisible': [('source_transaction_id', '!=', False)]}"/>
+                    <div class="o_row">
+                        <field name="jetcheckout_transaction_id"/>
+                        <button name="action_paylox_redirect_transaction" type="object" groups="base.group_system" attrs="{'invisible': [('jetcheckout_transaction_id', '=', False)]}">
+                            <i class="fa fa-fw fa-external-link mr-2"/>
+                            <span>Details</span>
+                        </button>
+                    </div>
                 </group>
             </group>
         </xpath>
@@ -105,13 +134,21 @@
     <field name="model">payment.transaction</field>
     <field name="inherit_id" ref="payment.payment_transaction_list"/>
     <field name="arch" type="xml">
+        <xpath expr="//tree" position="attributes">
+            <attribute name="js_class">transaction_buttons</attribute>
+        </xpath>
         <xpath expr='//field[@name="partner_name"]' position="replace">
             <field name="partner_name" invisible="1"/>
+        </xpath>
+        <xpath expr='//field[@name="partner_id"]' position="after">
+            <field name="partner_vat" optional="hide"/>
         </xpath>
         <xpath expr='//field[@name="fees"]' position="replace">
             <field name="fees" invisible="1"/>
             <field name="jetcheckout_installment_count" invisible="1"/>
             <field name="jetcheckout_installment_description_long" string="Installment" decoration-info="jetcheckout_installment_count == 1" widget="badge"/>
+            <field name="jetcheckout_card_family" optional="hide"/>
+            <field name="jetcheckout_transaction_id" optional="hide"/>
         </xpath>
     </field>
     </record>

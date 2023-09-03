@@ -1,0 +1,198 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* payment_jetcheckout_pos
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-07-04 15:47+0000\n"
+"PO-Revision-Date: 2023-07-04 18:47+0300\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.3.2\n"
+
+#. module: payment_jetcheckout_pos
+#: model_terms:ir.ui.view,arch_db:payment_jetcheckout_pos.res_config_settings_view_form
+msgid "Accept payments with an Paylox payment acquirer"
+msgstr "Paylox ödeme alıcısı ile gelen ödemeleri işleyin"
+
+#. module: payment_jetcheckout_pos
+#: model:ir.model,name:payment_jetcheckout_pos.model_res_config_settings
+msgid "Config Settings"
+msgstr "Yapılandırma Ayarları"
+
+#. module: payment_jetcheckout_pos
+#: model_terms:ir.ui.view,arch_db:payment_jetcheckout_pos.res_config_settings_view_form
+msgid "Paylox"
+msgstr "Paylox"
+
+#. module: payment_jetcheckout_pos
+#: model:ir.model.fields,field_description:payment_jetcheckout_pos.field_res_config_settings__module_pos_jetcheckout
+msgid "Paylox Payment Terminal"
+msgstr "Paylox Ödeme Terminali"
+
+#. module: payment_jetcheckout_pos
+#: model:ir.model,name:payment_jetcheckout_pos.model_payment_transaction
+msgid "Payment Transaction"
+msgstr "Ödeme İşlemi"
+
+#. module: payment_jetcheckout_pos
+#: model:ir.model,name:payment_jetcheckout_pos.model_payment_transaction_import
+msgid "Payment Transaction Import"
+msgstr "Ödeme İşlemi İçe Aktar"
+
+#. module: payment_jetcheckout_pos
+#: model:ir.model,name:payment_jetcheckout_pos.model_payment_transaction_import_line
+msgid "Payment Transaction Import Line"
+msgstr "Ödeme İşlemi İçe Aktar Satırı"
+
+#. module: payment_jetcheckout_pos
+#: model:ir.model.fields,field_description:payment_jetcheckout_pos.field_payment_transaction__pos_order_id
+msgid "PoS Order"
+msgstr "PoS Siparişi"
+
+#. module: payment_jetcheckout_pos
+#: model:ir.model.fields,field_description:payment_jetcheckout_pos.field_payment_transaction__pos_order_name
+msgid "PoS Order Name"
+msgstr "PoS Sipariş Adı"
+
+#. module: payment_jetcheckout_pos
+#: model:ir.model.fields,field_description:payment_jetcheckout_pos.field_payment_transaction__pos_payment_id
+msgid "PoS Payment"
+msgstr "PoS Ödeme"
+
+#. module: payment_jetcheckout_pos
+#: model:ir.model.fields,field_description:payment_jetcheckout_pos.field_payment_transaction__pos_method_id
+#: model:ir.model.fields,field_description:payment_jetcheckout_pos.field_payment_transaction_import_line__pos_method_id
+msgid "PoS Payment Method"
+msgstr "PoS Ödeme Metodu"
+
+#. module: payment_jetcheckout_pos
+#: model:ir.model.fields,field_description:payment_jetcheckout_pos.field_payment_transaction__pos_session_id
+msgid "PoS Session"
+msgstr "PoS Oturumu"
+
+#. module: payment_jetcheckout_pos
+#: model:ir.model.fields,help:payment_jetcheckout_pos.field_res_config_settings__module_pos_jetcheckout
+#: model_terms:ir.ui.view,arch_db:payment_jetcheckout_pos.res_config_settings_view_form
+msgid ""
+"The transactions are processed by Paylox. Set your Paylox credentials on the "
+"related payment method."
+msgstr ""
+"Ödeme işlemleri Paylox tarafından işlenir. Paylox hesap bilgilerinizi ilgili "
+"ödeme metodu üzerinden ayarlayınız."
+
+#, python-format
+#~ msgid "An error occured."
+#~ msgstr "Bir hata meydana geldi."
+
+#, python-format
+#~ msgid "An error occured. Please contact with your system administrator."
+#~ msgstr ""
+#~ "Bir hata meydana geldi. Lütfen sistem yöneticisi ile iletişime geçiniz."
+
+#, python-format
+#~ msgid "An error occured. Please try again."
+#~ msgstr "Bir hata meydana geldi. Lütfen tekrar deneyiniz."
+
+#, python-format
+#~ msgid ""
+#~ "Appliable installment options will be displayed here after you enter your "
+#~ "credit card number"
+#~ msgstr ""
+#~ "Uygulanabilir taksit seçenekleri, kredi kartı numaranızı girdiğinizde "
+#~ "burada görünecektir"
+
+#, python-format
+#~ msgid "Cannot access installment table. Please check your connection."
+#~ msgstr "Taksit tablosuna erişilemiyor. Lütfen bağlantınızı kontrol edin."
+
+#, python-format
+#~ msgid "Card Number"
+#~ msgstr "Kart Numarası"
+
+#, python-format
+#~ msgid "Close"
+#~ msgstr "Kapat"
+
+#, python-format
+#~ msgid "Error"
+#~ msgstr "Hata"
+
+#, python-format
+#~ msgid "Expiration"
+#~ msgstr "SKT"
+
+#, python-format
+#~ msgid "INSTALLMENT"
+#~ msgstr "TAKSİT"
+
+#, python-format
+#~ msgid "Installment Table"
+#~ msgstr "Taksit Tablosu"
+
+#, python-format
+#~ msgid "MM/YY"
+#~ msgstr "AA/YY"
+
+#, python-format
+#~ msgid "MONTHLY"
+#~ msgstr "AYLIK"
+
+#, python-format
+#~ msgid "Monthly Payment"
+#~ msgstr "Aylık Ödeme"
+
+#, python-format
+#~ msgid "Name"
+#~ msgstr "Ad"
+
+#, python-format
+#~ msgid "Network Error"
+#~ msgstr "Ağ Hatası"
+
+#, python-format
+#~ msgid "Please enter an amount"
+#~ msgstr "Lütfen bir tutar giriniz"
+
+#, python-format
+#~ msgid "Please fill card expiration date"
+#~ msgstr "Lütfen kartın son kullanım tarihini giriniz"
+
+#, python-format
+#~ msgid "Please fill card holder name"
+#~ msgstr "Lütfen kart sahibi adını giriniz"
+
+#, python-format
+#~ msgid "Please fill card number"
+#~ msgstr "Lütfen kart numarasını giriniz"
+
+#, python-format
+#~ msgid "Please fill card security code"
+#~ msgstr "Lütfen kart güvenlik kodunu giriniz"
+
+#, python-format
+#~ msgid "Please select a customer"
+#~ msgstr "Lütfen bir müşteri seçiniz"
+
+#, python-format
+#~ msgid "Please select whether payment is straight or installment"
+#~ msgstr "Lütfen ödemenin tek çekim veya taksitli olduğunu belirtiniz"
+
+#, python-format
+#~ msgid "Security Code"
+#~ msgstr "Güvenlik Kodu"
+
+#, python-format
+#~ msgid "TOTAL"
+#~ msgstr "TOPLAM"
+
+#, python-format
+#~ msgid "Total Payment"
+#~ msgstr "Toplam Ödeme"

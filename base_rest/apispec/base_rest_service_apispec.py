@@ -3,7 +3,6 @@
 
 import inspect
 import textwrap
-import ast
 
 from apispec import APISpec
 
@@ -21,13 +20,20 @@ class BaseRestServiceAPISpec(APISpec):
     def __init__(self, service_component, **params):
         self._service = service_component
         env = self._service.env
+        company = env.company
+        website = getattr(company, 'website_id', False)
+        if website:
+            url = "/web/image/website/%s/logo" % website.id
+        else:
+            url = "/web/image/res.company/%s/logo" % company.id
+
         super(BaseRestServiceAPISpec, self).__init__(
             title="%s REST Services" % self._service._usage.capitalize(),
             version="",
             openapi_version="3.0.0",
             info={
                 "description": textwrap.dedent(getattr(self._service, "_description", "") or ""),
-                "x-logo": dict(url="/web/image/website/%s/logo" % env.company.website_id.id)
+                "x-logo": dict(url=url)
             },
             servers=self._get_servers(),
             plugins=self._get_plugins(),
@@ -38,7 +44,7 @@ class BaseRestServiceAPISpec(APISpec):
                 #    "description": "You can take a look at postman collection",
                 #    "url": "/api/v1/%s/postman" % self._service._usage
                 #}
-            }]
+            }],
         )
         self._params = params
 
@@ -50,8 +56,16 @@ class BaseRestServiceAPISpec(APISpec):
             if spec["collection_name"] == self._service._collection:
                 collection_path = path
                 break
-        base_url = env["ir.config_parameter"].sudo().get_param("web.base.url")
-        url = env.company.website_id.domain or env.company.website or base_url
+
+        company = env.company
+        website = getattr(company, 'website_id', False)
+        if website:
+            url = website.domain
+        else:
+            url = company.website
+        if not url:
+            url = env["ir.config_parameter"].sudo().get_param("web.base.url")
+
         return [
             {
                 "url": "%s/%s/%s"
@@ -70,37 +84,74 @@ class BaseRestServiceAPISpec(APISpec):
             RestMethodSecurityPlugin(self._service),
         ]
 
-    def _add_method_path(self, method):
-        doc = textwrap.dedent(method.__doc__ or "")
-        values = {'summary': doc, 'tags': 'Other'}
-        if doc:
-            vals = doc.split("\n")
-            for val in vals:
-                if not val:
-                    continue
-                if ':' in val:
-                    key, value = val.split(':')
-                    values[key] = ast.literal_eval(value.strip())
-                else:
-                    values['summary'] = val
+    def _get_method_values(self, method):
+        summary = textwrap.dedent(method.__doc__ or "")
+        values = {'summary': summary}
 
+        tags = method.routing.get('tags')
+        if tags:
+            values['tags'] = tags
+
+        return values
+
+    def _add_path(self, method):
+        values = self._get_method_values(method)
         routing = method.routing
         for paths, method in routing["routes"]:
             for path in paths:
                 operations = {method.lower(): values}
                 self.path(path, operations=operations, routing=routing)
 
-    def generate_paths(self):
+    def _add_webhook(self, method):
+        def name(name):
+            return ''.join(i and x.capitalize() or x for i, x in enumerate(name.split('_')))
+
+        values = self._get_method_values(method)
+        routing = method.routing
+        operations = {'post': values}
+
+        for plugin in self.plugins:
+            try:
+                plugin.operation_helper(operations=operations, routing=routing)
+            except:
+                continue
+
+        self._clean_operations(operations)
+
+        webhook = {
+            name(method.__name__): {
+                "post": {
+                    **values,
+                    "responses": {
+                        "200": {
+                            "description": "Return a 200 status to indicate that the data was sent successfully"
+                        }
+                    }
+
+                }
+            }
+        }
+
+        if 'webhooks' in self.options:
+            self.options['webhooks'].update(webhook)
+        else:
+            self.options['webhooks'] = webhook
+
+    def generate_methods(self):
         def sort_methods(method):
             try:
                 return inspect.getsourcelines(method[1])[1]
             except:
                 return -1
 
+        if not self.options:
+            self.options = {}
+
         methods = inspect.getmembers(self._service, inspect.ismethod)
         methods.sort(key=sort_methods)
         for name, method in methods:
-            routing = getattr(method, "routing", None)
-            if not routing:
-                continue
-            self._add_method_path(method)
+            if hasattr(method, "routing"):
+                if 'webhook' in method.routing:
+                    self._add_webhook(method)
+                else:
+                    self._add_path(method)

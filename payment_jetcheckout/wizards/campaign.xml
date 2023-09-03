@@ -7,9 +7,10 @@
         <form string="Campaign">
             <sheet>
                 <group>
-                    <field name="offer_name" readonly="context.get('no_edit')"/>
-                    <field name="currency_id" readonly="context.get('no_edit')" options="{'no_create': True, 'no_open': True}"/>
-                    <field name="card_families" readonly="context.get('no_edit')" mode="kanban">
+                    <field name="acquirer_id" invisible="1" readonly="1"/>
+                    <field name="offer_name" readonly="context.get('no_edit')" attrs="{'readonly': [('imported', '=', True)]}"/>
+                    <field name="currency_id" readonly="context.get('no_edit')" options="{'no_create': True, 'no_open': True}" attrs="{'readonly': [('imported', '=', True)]}"/>
+                    <field name="card_families" readonly="context.get('no_edit')" mode="kanban" attrs="{'readonly': [('imported', '=', True)]}">
                         <kanban create="0" edit="0">
                             <field name="name"/>
                             <field name="logo"/>
@@ -24,16 +25,11 @@
                         <tree create="0" edit="0">
                             <field name="name"/>
                         </tree>
-                        <form create="0" edit="0">
-                            <sheet>
-                                <group>
-                                    <field name="name"/>
-                                </group>
-                            </sheet>
-                        </form>
                     </field>
                 </group>
                 <group>
+                    <field name="import_rates" invisible="1"/>
+                    <field name="imported"/>
                     <field name="is_active" readonly="context.get('no_edit')"/>
                     <field name="from_date" readonly="context.get('no_edit')"/>
                     <field name="to_date" readonly="context.get('no_edit')"/>
@@ -42,9 +38,15 @@
                     <page string="Installments">
                         <field name="pos_lines" readonly="context.get('no_edit')">
                             <tree editable="bottom">
-                                <field name="installment_type"/>
-                                <field name="customer_rate"/>
-                                <field name="cost_rate"/>
+                                <field name="imported" invisible="1"/>
+                                <field name="calc_cust_rates" invisible="1"/>
+                                <field name="installment_type" attrs="{'readonly': [('imported', '=', True)]}"/>
+                                <field name="customer_rate" attrs="{'readonly': [('calc_cust_rates', '=', True), ('fixed_customer_rate', '=', False)]}"/>
+                                <field name="cost_rate" attrs="{'readonly': [('imported', '=', True)]}"/>
+                                <field name="additional_rate"/>
+                                <field name="fixed_customer_rate"/>
+                                <field name="min_amount"/>
+                                <field name="max_amount"/>
                                 <field name="is_active"/>
                                 <field name="plus_installment"/>
                                 <field name="plus_installment_description"/>
@@ -52,17 +54,22 @@
                         </field>
                     </page>
                     <page string="Excluded Bins">
-                        <field name="excluded_bins" readonly="context.get('no_edit')"> 
+                        <field name="excluded_bins" readonly="context.get('no_edit')" context="{'no_edit': 1}"> 
                             <tree create="0" edit="0" delete="0">
-                                <field name="name"/>
+                                <field name="code"/>
+                                <field name="bank_code"/>
+                                <field name="card_type"/>
+                                <field name="card_family_id"/>
+                                <field name="mandatory_3d"/>
+                                <field name="program"/>
                             </tree>
                             <form create="0" edit="0" delete="0">
                                 <sheet>
                                     <group>
                                         <group>
-                                            <field name="name"/>
                                             <field name="code"/>
-                                            <field name="bank_code"/>
+                                            <field name="bank_code" options="{'no_create': True, 'no_open': True}"/>
+                                            <field name="card_family_id" options="{'no_create': True, 'no_open': True}"/>
                                         </group>
                                         <group>
                                             <field name="card_type"/>
@@ -78,5 +85,121 @@
             </sheet>
         </form>
     </field>
+    </record>
+
+    <record id="api_family_tree" model="ir.ui.view">
+    <field name="name">payment.acquirer.jetcheckout.api.family.tree</field>
+    <field name="model">payment.acquirer.jetcheckout.api.family</field>
+    <field name="arch" type="xml">
+        <tree create="0" edit="0" delete="0">
+            <field name="name"/>
+        </tree>
+    </field>
+    </record>
+
+    <record id="api_excluded_tree" model="ir.ui.view">
+    <field name="name">payment.acquirer.jetcheckout.api.excluded.tree</field>
+    <field name="model">payment.acquirer.jetcheckout.api.excluded</field>
+    <field name="arch" type="xml">
+        <tree create="0" edit="0" delete="0">
+            <field name="code"/>
+            <field name="bank_code"/>
+            <field name="card_type"/>
+            <field name="card_family_id"/>
+            <field name="mandatory_3d"/>
+            <field name="program"/>
+        </tree>
+    </field>
+    </record>
+
+    <record id="api_campaigns_line_form" model="ir.ui.view">
+    <field name="name">payment.acquirer.jetcheckout.api.campaigns.line.form</field>
+    <field name="model">payment.acquirer.jetcheckout.api.campaigns.line</field>
+    <field name="arch" type="xml">
+        <form string="Campaigns" create="0" edit="0" delete="0">
+            <sheet>
+                <group>
+                    <group>
+                        <field name="is_active" invisible="1" readonly="1"/>
+                        <field name="name" readonly="1"/>
+                    </group>
+                    <group>
+                        <field name="is_active" readonly="1" widget="boolean_toggle" style="pointer-events: none;"/>
+                    </group>
+                </group>
+            </sheet>
+            <footer>
+                <button name="select" type="object" class="btn-primary" attrs="{'invisible': [('is_active', '!=', False)]}" string="Select"/>
+                <button name="select" type="object" attrs="{'invisible': [('is_active', '=', False)]}" string="Select"/>
+            </footer>
+        </form>
+    </field>
+    </record>
+
+    <record id="api_campaigns_line_kanban" model="ir.ui.view">
+    <field name="name">payment.acquirer.jetcheckout.api.campaigns.line.kanban</field>
+    <field name="model">payment.acquirer.jetcheckout.api.campaigns.line</field>
+    <field name="arch" type="xml">
+        <kanban string="Campaigns">
+            <field name="name"/>
+            <field name="is_active"/>
+            <templates>
+                <t t-name="kanban-box">
+                    <div t-attf-class="oe_kanban_global_click d-flex mx-0 shadow-sm p-0 w-100 overflow-hidden #{record.is_active.raw_value ? '' : 'text-400'}" style="padding: 0 !important">
+                        <div t-attf-class="font-weight-bold text-center p-1 h-100 d-flex justify-content-center align-items-center border-right h5 shadow #{record.is_active.raw_value ? 'bg-success' : 'bg-100'}">
+                        </div>
+                        <div class="d-flex align-items-center font-weight-bold h-100 p-2 shadow text-600 text-center overflow-hidden text-nowrap" t-att-title="record.name.value" style="flex: 4;">
+                            <t t-esc="record.name.value"/>
+                        </div>
+                        <div class="d-flex align-items-center text-center" style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            <button t-if="record.is_active.raw_value" class="btn text-uppercase bg-muted h-100 w-100 rounded-0" disabled="disabled">Select</button>
+                            <button t-else="" name="select" type="object" class="btn btn-primary text-uppercase h-100 w-100 rounded-0">Select</button>
+                        </div>
+                    </div>
+                </t>
+            </templates>
+        </kanban>
+    </field>
+    </record>
+
+    <record id="api_family_form" model="ir.ui.view">
+    <field name="name">payment.acquirer.jetcheckout.api.family.form</field>
+    <field name="model">payment.acquirer.jetcheckout.api.family</field>
+    <field name="arch" type="xml">
+        <form string="Card Families">
+            <sheet>
+                <field name="preview" class="oe_avatar" options="{'preview_image': 'avatar_128'}"/>
+                <div class="oe_title">
+                    <label for="name"/>
+                    <h1>
+                        <field name="name"/>
+                    </h1>
+                </div>
+            </sheet>
+        </form>
+    </field>
+    </record>
+
+    <record id="api_campaigns_form" model="ir.ui.view">
+    <field name="name">payment.acquirer.jetcheckout.api.campaigns.form</field>
+    <field name="model">payment.acquirer.jetcheckout.api.campaigns</field>
+    <field name="arch" type="xml">
+        <form string="Campaigns">
+            <sheet>
+                <field name="acquirer_id" invisible="1" readonly="1"/>
+                <field name="line_ids" nolabel="1" mode="kanban" colspan="2" readonly="1"/>
+            </sheet>
+            <footer>
+                <button special="cancel" string="Cancel"/>
+            </footer>
+        </form>
+    </field>
+    </record>
+
+    <record id="action_api_campaigns" model="ir.actions.act_window">
+    <field name="name">Campaigns</field>
+    <field name="res_model">payment.acquirer.jetcheckout.api.campaigns</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
     </record>
 </odoo>

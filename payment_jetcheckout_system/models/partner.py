@@ -5,14 +5,46 @@ from odoo.tools import email_normalize
 from .constants import PRIMEFACTOR
 
 
+class PartnerTeam(models.Model):
+    _inherit = 'crm.team'
+
+    @api.model
+    def default_get(self, fields):
+        res = super().default_get(fields)
+        if self.env.context.get('settings'):
+            res['company_id'] = self.env.company.id
+        return res
+
+
+class PartnerCategory(models.Model):
+    _inherit = 'res.partner.category'
+
+    company_id = fields.Many2one('res.company')
+
+    @api.model
+    def default_get(self, fields):
+        res = super().default_get(fields)
+        if self.env.context.get('settings'):
+            res['company_id'] = self.env.company.id
+        return res
+
 class Partner(models.Model):
     _name = 'res.partner'
-    _inherit = ['res.partner','portal.mixin']
+    _inherit = ['res.partner', 'portal.mixin']
 
     def _compute_payment(self):
         for partner in self:
-            item_ids = self.env['payment.item'].search([('child_id' if partner.parent_id else 'parent_id', '=', partner.id)])
-            transaction_ids = item_ids.mapped('transaction_ids')
+            domain_items = []
+            domain_transactions = []
+            if partner.parent_id:
+                domain_items = [('child_id', '=', partner.id)]
+                domain_transactions = [('partner_id', '=', partner.id)]
+            else:
+                domain_items = [('parent_id', '=', partner.id)]
+                domain_transactions = [('partner_id', 'in', partner.child_ids.ids + [partner.id])]
+
+            item_ids = self.env['payment.item'].search(domain_items)
+            transaction_ids = self.env['payment.transaction'].search(domain_transactions)
             partner.payable_ids = item_ids.filtered(lambda x: x.paid == False)
             partner.paid_ids = item_ids.filtered(lambda x: x.paid != False)
             partner.transaction_failed_ids = transaction_ids.filtered(lambda x: x.state != 'done')
@@ -41,7 +73,7 @@ class Partner(models.Model):
     @api.depends('user_ids', 'company_id')
     def _compute_user_details(self):
         for partner in self:
-            users = partner.user_ids.filtered(lambda x: x.company_id.id == partner.company_id.id)
+            users = partner.with_context(active_test=False).user_ids.filtered(lambda x: x.company_id.id == (partner.company_id.id or self.env.company.id))
             user = users[0] if users else False
             if user:
                 partner.users_id = user.id
@@ -59,31 +91,96 @@ class Partner(models.Model):
                 partner.is_internal = False
                 partner.is_portal = False
 
-    system = fields.Selection(related='company_id.system', store=True, readonly=True)
-    payable_ids = fields.One2many('payment.item', string='Payable Items', copy=False, compute='_compute_payment', search='_search_payment')
-    paid_ids = fields.One2many('payment.item', string='Paid Items', copy=False, compute='_compute_payment')
-    transaction_done_ids = fields.One2many('payment.transaction', string='Done Transactions', copy=False, compute='_compute_payment')
-    transaction_failed_ids = fields.One2many('payment.transaction', string='Failed Transactions', copy=False, compute='_compute_payment')
+    def _search_is_portal(self, operator, operand):
+        group_portal = self.env.ref('base.group_portal')
+        ids = group_portal.users.mapped('partner_id').ids
+        operator = 1 if operator == '=' else -1
+        operand = 1 if operand else -1
+        op = 'in' if operator * operand == 1 else 'not in'
+        return [('id', op, ids)]
+
+    def _search_is_internal(self, operator, operand):
+        group_user = self.env.ref('base.group_user')
+        ids = group_user.users.mapped('partner_id').ids
+        operator = 1 if operator == '=' else -1
+        operand = 1 if operand else -1
+        op = 'in' if operator * operand == 1 else 'not in'
+        return [('id', op, ids)]
+
+    system = fields.Selection(selection=[], readonly=True)
+    payable_ids = fields.One2many('payment.item', string='Payable Items', copy=False, compute='_compute_payment', search='_search_payment', compute_sudo=True)
+    paid_ids = fields.One2many('payment.item', string='Paid Items', copy=False, compute='_compute_payment', compute_sudo=True)
+    transaction_done_ids = fields.One2many('payment.transaction', string='Done Transactions', copy=False, compute='_compute_payment', compute_sudo=True)
+    transaction_failed_ids = fields.One2many('payment.transaction', string='Failed Transactions', copy=False, compute='_compute_payment', compute_sudo=True)
     sibling_ids = fields.One2many('res.partner', compute='_compute_sibling')
-    paid_count = fields.Integer(string='Items Paid', compute='_compute_payment')
-    payable_count = fields.Integer(string='Items To Pay', compute='_compute_payment')
-    transaction_done_count = fields.Integer(string='Transaction Done', compute='_compute_payment')
-    transaction_failed_count = fields.Integer(string='Transaction Failed', compute='_compute_payment')
+    paid_count = fields.Integer(string='Items Paid', compute='_compute_payment', compute_sudo=True)
+    payable_count = fields.Integer(string='Items To Pay', compute='_compute_payment', compute_sudo=True)
+    transaction_done_count = fields.Integer(string='Transaction Done', compute='_compute_payment', compute_sudo=True)
+    transaction_failed_count = fields.Integer(string='Transaction Failed', compute='_compute_payment', compute_sudo=True)
     date_email_sent = fields.Datetime('Email Sent Date', readonly=True)
     date_sms_sent = fields.Datetime('Sms Sent Date', readonly=True)
-    is_portal = fields.Boolean(compute='_compute_user_details', compute_sudo=True, readonly=True)
-    is_internal = fields.Boolean(compute='_compute_user_details', compute_sudo=True, readonly=True)
+    is_portal = fields.Boolean(compute='_compute_user_details', search='_search_is_portal', compute_sudo=True, readonly=True)
+    is_internal = fields.Boolean(compute='_compute_user_details', search='_search_is_internal', compute_sudo=True, readonly=True)
+    acquirer_branch_id = fields.Many2one('payment.acquirer.jetcheckout.branch', string='Payment Acquirer Branch')
     users_id = fields.Many2one('res.users', compute='_compute_user_details', compute_sudo=True, readonly=True)
 
     @api.model
     def default_get(self, fields):
+        if not self.env.su and self.env.user.company_id.system and not self.env.user.has_group('payment_jetcheckout_system.group_system_create_partner'):
+            raise UserError(_('You do not have permission to create a partner'))
+ 
         res = super().default_get(fields)
-        res['company_id'] = self.env.company.id
+        if not self.env.context.get('skip_company') and self.env.company.system:
+            res['company_id'] = self.env.company.id
         langs = self.env['res.lang'].get_installed()
         for lang in langs:
             if lang[0] == 'tr_TR':
                 res['lang'] = 'tr_TR'
                 break
+        return res
+
+    @api.model
+    def create(self, values):
+        if not self.env.su and self.env.user.company_id.system and not self.env.user.has_group('payment_jetcheckout_system.group_system_create_partner'):
+            raise UserError(_('You do not have permission to create a partner'))
+
+        if 'system' not in values and 'company_id' in values:
+            company = self.env['res.company'].sudo().browse(values['company_id'])
+            if company and company.system:
+                values['system'] = company.system
+
+        res = super().create(values)
+
+        if 'user_id' in values:
+            if values['user_id']:
+                pid = self.env['res.users'].browse(values['user_id']).partner_id.id
+                res.message_subscribe([pid])
+
+        return res
+
+    def write(self, values):
+        if 'system' not in values and 'company_id' in values:
+            company = self.env['res.company'].sudo().browse(values['company_id'])
+            if company and company.system:
+                values['system'] = company.system
+
+        if 'user_id' in values:
+            users = []
+            for partner in self:
+                users.append((partner, partner.user_id.id))
+
+        res = super().write(values)
+
+        if 'user_id' in values:
+            for partner, uid in users:
+                if not values['user_id'] == uid:
+                    if uid:
+                        pid = self.env['res.users'].browse(uid).partner_id.id
+                        partner.message_unsubscribe([pid])
+                    if values['user_id']:
+                        pid = self.env['res.users'].browse(values['user_id']).partner_id.id
+                        partner.message_subscribe([pid])
+
         return res
 
     def _get_name(self):
@@ -95,6 +192,7 @@ class Partner(models.Model):
         return partner.name or ''
 
     def _get_token(self):
+        self._portal_ensure_token()
         return '%s-%x' % (self.access_token, self.id * PRIMEFACTOR)
 
     @api.model
@@ -165,7 +263,6 @@ class Partner(models.Model):
 
     def action_revoke_access(self):
         self.ensure_one()
-        self._check_portal_user()
 
         if not self.is_portal:
             raise UserError(_('The partner "%s" has no portal access.', self.name))
@@ -179,12 +276,7 @@ class Partner(models.Model):
         if not user:
             return True
 
-        user = user.sudo()
-        if user.has_group('base.group_portal'):
-            if len(user.groups_id) <= 1:
-                user.write({'groups_id': [(3, group_portal.id), (4, group_public.id)], 'active': False})
-            else:
-                user.write({'groups_id': [(3, group_portal.id), (4, group_public.id)]})
+        user.sudo().write({'groups_id': [(3, group_portal.id), (4, group_public.id)], 'active': False})
         return True
 
     def action_invite_again(self):
@@ -233,23 +325,41 @@ class Partner(models.Model):
     @api.model
     def fields_view_get(self, view_id=None, view_type='form', toolbar=False, submenu=False):
         system = self.env.context.get('active_system') or self.env.context.get('system')
+        subsystem = self.env.context.get('active_subsystem') or self.env.context.get('subsystem')
         if system:
+            if subsystem:
+                subsystem = subsystem.replace('%s_' % system, '') + '_'
+            else:
+                subsystem = ''
+
             child = self.env.context.get('active_child', False)
             if child:
                 if view_type == 'form':
-                    view_id = self.env.ref('payment_%s.child_form' % system).id
+                    try:
+                        view_id = self.env.ref('payment_%s.%schild_form' % (system, subsystem)).id
+                    except:
+                        view_id = self.env.ref('payment_%s.child_form' % (system,)).id
                 elif view_type == 'tree':
-                    view_id = self.env.ref('payment_%s.child_tree' % system).id
+                    try:
+                        view_id = self.env.ref('payment_%s.%schild_tree' % (system, subsystem)).id
+                    except:
+                        view_id = self.env.ref('payment_%s.child_tree' % (system,)).id
             else:
                 if view_type == 'form':
-                    view_id = self.env.ref('payment_%s.parent_form' % system).id
+                    try:
+                        view_id = self.env.ref('payment_%s.%sparent_form' % (system, subsystem)).id
+                    except:
+                        view_id = self.env.ref('payment_%s.parent_form' % (system,)).id
                 elif view_type == 'tree':
-                    view_id = self.env.ref('payment_%s.parent_tree' % system).id
+                    try:
+                        view_id = self.env.ref('payment_%s.%sparent_tree' % (system, subsystem)).id
+                    except:
+                        view_id = self.env.ref('payment_%s.parent_tree' % (system,)).id
         return super().fields_view_get(view_id=view_id, view_type=view_type, toolbar=toolbar, submenu=submenu)
 
     def action_payable(self):
         self.ensure_one()
-        system = self.company_id and self.company_id.system or self.env.context.get('active_system')
+        system = self.company_id and self.company_id.system or self.system or self.env.context.get('active_system') or 'jetcheckout_system'
         action = self.env.ref('payment_%s.action_item' % system).sudo().read()[0]
         action['domain'] = [('id', 'in', self.payable_ids.ids)]
         if self.parent_id:
@@ -260,7 +370,7 @@ class Partner(models.Model):
 
     def action_paid(self):
         self.ensure_one()
-        system = self.company_id and self.company_id.system or self.env.context.get('active_system')
+        system = self.company_id and self.company_id.system or self.system or self.env.context.get('active_system') or 'jetcheckout_system'
         action = self.env.ref('payment_%s.action_item' % system).sudo().read()[0]
         action['domain'] = [('id', 'in', self.paid_ids.ids)]
         if self.parent_id:
@@ -283,12 +393,22 @@ class Partner(models.Model):
 
     def action_share_link(self):
         action = self.env["ir.actions.actions"]._for_xml_id("portal.portal_share_action")
-        action['context'] = {'active_id': self.env.context['active_id'], 'active_model': self.env.context['active_model'], 'active_type': 'link'}
+        action['context'] = {
+            'active_id': self.env.context['active_id'],
+            'active_model': self.env.context['active_model'],
+            'active_type': 'link',
+            'company': self.company_id.id or self.env.company.id,
+        }
         return action
 
     def action_share_page(self):
         action = self.env["ir.actions.actions"]._for_xml_id("portal.portal_share_action")
-        action['context'] = {'active_id': self.env.context['active_id'], 'active_model': self.env.context['active_model'], 'active_type': 'page'}
+        action['context'] = {
+            'active_id': self.env.context['active_id'],
+            'active_model': self.env.context['active_model'],
+            'active_type': 'page',
+            'company': self.company_id.id or self.env.company.id,
+        }
         return action
 
     def action_share_payment_link(self):
@@ -299,14 +419,37 @@ class Partner(models.Model):
         self.ensure_one()
         return self.sudo().env.ref('payment_jetcheckout_system.payment_share_page').sudo().read()[0]
 
+    def action_redirect_payment_link(self):
+        self.ensure_one()
+        wizard = self.env['payment.item.wizard'].create({'partner_id': self.id})
+        action = self.sudo().env.ref('payment_jetcheckout_system.action_item_wizard').sudo().read()[0]
+        action['res_id'] = wizard.id
+        return action
+
+    def action_redirect_payment_page(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_url',
+            'target': 'new',
+            'url': '%s/my/payment/%s' % (self.get_base_url(), self._get_token())
+        }
+
     def action_send(self):
-        company = self.mapped('company_id')
-        if not len(company) == 1:
+        company = self.mapped('company_id') or self.env.company
+        if len(company) > 1:
             raise UserError(_('Partners have to be in one company when sending mass messages, but there are %s of them. (%s)') % (len(company), ', '.join(company.mapped('name'))))
 
-        type_email = self.env.ref('payment_jetcheckout_system.send_type_email')
+        params = self.env['ir.config_parameter'].sudo().get_param
         mail_template = self.env['mail.template'].sudo().search([('company_id', '=',company.id)], limit=1)
+        if not mail_template and params('paylox.email.default'):
+            id = int(params('paylox.email.template', '0'))
+            mail_template = self.env['mail.template'].browse(id)
         sms_template = self.env['sms.template'].sudo().search([('company_id', '=', company.id)], limit=1)
+        if not sms_template and params('paylox.sms.default'):
+            id = int(params('paylox.sms.template', '0'))
+            sms_template = self.env['sms.template'].browse(id)
+ 
+        type_email = self.env.ref('payment_jetcheckout_system.send_type_email')
         res = self.env['payment.acquirer.jetcheckout.send'].create({
             'selection': [(6, 0, type_email.ids)],
             'type_ids': [(6, 0, type_email.ids)],
@@ -316,4 +459,24 @@ class Partner(models.Model):
         })
         action = self.env.ref('payment_jetcheckout_system.action_system_send').sudo().read()[0]
         action['res_id'] = res.id
+        action['context'] = {
+            'readonly': True,
+            'active_ids': self.ids,
+            'active_model': 'res.partner'
+        }
         return action
+
+    def action_follower(self):
+        action = self.env.ref('payment_jetcheckout_system.action_partner_follower').sudo().read()[0]
+        action['context'] = {'default_company_id': self.env.company.id}
+        return action
+
+    def action_follow(self):
+        pid = self.env.user.partner_id.id
+        for partner in self:
+            partner.message_subscribe([pid])
+
+    def action_unfollow(self):
+        pid = self.env.user.partner_id.id
+        for partner in self:
+            partner.message_unsubscribe([pid])

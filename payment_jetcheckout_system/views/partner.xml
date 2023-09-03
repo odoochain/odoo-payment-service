@@ -1,12 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="crm_team_kanban" model="ir.ui.view">
+    <field name="model">crm.team</field>
+    <field name="inherit_id" ref="sales_team.crm_team_view_kanban_dashboard"/>
+    <field name="arch" type="xml">
+        <xpath expr="//kanban" position="attributes">
+            <attribute name="create">1</attribute>
+        </xpath>
+        <xpath expr="//div[hasclass('o_kanban_card_manage_settings')]" position="attributes">
+            <attribute name="groups">sales_team.group_sale_manager,payment_jetcheckout_system.group_system_manager</attribute>
+        </xpath>
+    </field>
+    </record>
+
+    <record id="partner_category_tree" model="ir.ui.view">
+    <field name="model">res.partner.category</field>
+    <field name="inherit_id" ref="base.view_partner_category_list"/>
+    <field name="arch" type="xml">
+        <xpath expr="//tree" position="inside">
+            <field name="company_id" groups="base.group_multi_company,base.group_system" options="{'no_create': True, 'no_open': True}" optional="hide"/>
+        </xpath>
+    </field>
+    </record>
+
+    <record id="partner_category_form" model="ir.ui.view">
+    <field name="model">res.partner.category</field>
+    <field name="inherit_id" ref="base.view_partner_category_form"/>
+    <field name="arch" type="xml">
+        <xpath expr="//group" position="inside">
+            <field name="company_id" groups="base.group_multi_company,base.group_system" options="{'no_create': True, 'no_open': True}"/>
+        </xpath>
+    </field>
+    </record>
+
+    <record id="partner_category_search" model="ir.ui.view">
+    <field name="model">res.partner.category</field>
+    <field name="inherit_id" ref="base.res_partner_category_view_search"/>
+    <field name="arch" type="xml">
+        <xpath expr="//search" position="inside">
+            <group expand="0" string="Groupby">
+                <filter string="Company" name="groupby_company" domain="[]" context="{'group_by':'company_id'}" groups="base.group_multi_company,base.group_system"/>
+            </group>
+        </xpath>
+    </field>
+    </record>
+
     <record id="partner_tree" model="ir.ui.view">
     <field name="name">res.partner.payment.tree</field>
     <field name="model">res.partner</field>
     <field name="arch" type="xml">
-        <tree decoration-muted="active == False" sample="1">
+        <tree decoration-muted="active == False" js_class="system_partner" sample="1">
             <header>
-                <button name="action_send" type="object" string="Send"/>
+                <button name="action_send" type="object" string="Send" icon="fa-send"/>
+                <button name="action_follower" type="object" string="Add Followers" icon="fa-user-plus"/>
+                <button name="action_follow" type="object" string="Follow" icon="fa-check"/>
+                <button name="action_unfollow" type="object" string="Unfollow" class="text-danger" icon="fa-times"/>
             </header>
             <field name="active" invisible="1"/>
             <field name="name"/>
@@ -16,7 +64,7 @@
             <field name="email"/>
             <field name="date_email_sent" optional="hide"/>
             <field name="date_sms_sent" optional="hide"/>
-            <field name="company_id" groups="base.group_multi_company" options="{'no_create': True, 'no_open': True}"/>
+            <field name="company_id" groups="base.group_multi_company,base.group_system" options="{'no_create': True, 'no_open': True}"/>
         </tree>
     </field>
     </record>
@@ -26,7 +74,7 @@
     <field name="model">res.partner</field>
     <field name="arch" type="xml">
         <form>
-            <field name="system" invisible="1"/>
+            <field name="system" invisible="1" force_save="1"/>
             <header>
                 <button name="action_share_payment_link" type="object" string="Payment Link" class="oe_highlight" attrs="{'invisible': [('payable_count', '=', 0)]}"/>
                 <button name="action_share_payment_page" type="object" string="Payment Page" class="oe_highlight" attrs="{'invisible': [('is_portal', '=', False)]}"/>
@@ -79,21 +127,23 @@
                     <group name="general">
                         <field name="vat" string="Vat"/>
                         <field name="lang"/>
-                        <field name="parent_id" string="Parent" context="{'show_address': True, 'active_system': context.get('active_system')}" required="'default_parent_id' not in context" invisible="'default_parent_id' in context" domain="[('system','=',system),('parent_id','=',False),('company_id','=',company_id)]"/>
+                        <field name="parent_id" string="Parent" context="{'show_address': True, 'active_system': context.get('active_system'), 'default_system': context.get('default_system')}" required="'default_parent_id' not in context" invisible="'default_parent_id' in context" domain="[('system','=',system),('parent_id','=',False),('company_id','=',company_id)]"/>
                         <field name="id" invisible="1"/>
                         <field name="active" invisible="1"/>
                     </group>
                     <group name="private">
                         <field name="mobile" widget="phone"/>
                         <field name="email" widget="email"/>
-                        <field name="company_id" groups="base.group_multi_company" options="{'no_create': True, 'no_open': True}" required="context.get('active_system')"/>
+                        <field name="ref"/>
+                        <field name="company_id" groups="base.group_multi_company,base.group_system" options="{'no_create': True, 'no_open': True}" required="context.get('system')"/>
                     </group>
                     <group name="communication" string="Communication Dates">
                         <field name="date_email_sent" string="Email"/>
                         <field name="date_sms_sent" string="SMS"/>
                     </group>
                     <group name="payment" string="Payment Settings">
-                        <field name="campaign_id" string="Campaign" domain="[('acquirer_id', 'in', acquirer_ids)]" options="{'no_create': True, 'no_open': True}"/>
+                        <field name="campaign_id" string="Campaign" domain="[('acquirer_id', 'in', acquirer_ids)]" options="{'no_create': True, 'no_open': True}" required="1"/>
+                        <field name="acquirer_branch_id" string="Branch" domain="[('acquirer_id', 'in', acquirer_ids)]" options="{'no_create': True, 'no_open': True}" attrs="{'invisible': [('is_internal', '=', False)]}"/>
                         <field name="acquirer_ids" invisible="1"/>
                     </group>
                 </group>
@@ -141,6 +191,9 @@
         <xpath expr='//field[@name="property_account_payable_id"]' position="attributes">
             <attribute name="required">0</attribute>
         </xpath>
+        <xpath expr='//group[@name="misc"]' position="inside">
+            <field name="system" readonly="0"/>
+        </xpath>
     </field>
     </record>
 
@@ -151,6 +204,7 @@
         <kanban>
             <field name="id"/>
             <field name="name"/>
+            <field name="parent_id"/>
             <field name="image_128"/>
             <field name="avatar_128"/>
             <field name="is_portal"/>
@@ -162,23 +216,25 @@
                             <img alt="" t-if="record.image_128.raw_value" t-att-src="kanban_image('res.partner', 'avatar_128', record.id.raw_value)"/>
                             <img alt="" t-else="" t-att-src="_s + &quot;/base/static/img/avatar_grey.png&quot;"/>
                         </div>
-                        <div class="oe_kanban_details d-flex flex-column">
-                            <strong><field name="name"/></strong>
-                            <ul></ul>
-                            <div class="o_row">
-                                <t t-if="record.is_internal.value">
-                                    <button string="Internal User" disabled="True" title="This partner is linked to an internal User and already has access to the Portal."/>
-                                </t>
-                                <t t-else="">
-                                    <t t-if="record.is_portal.value">
-                                        <button string="Revoke Access" name="action_revoke_access" type="object" class="btn-secondary"/>
-                                        <button string="Re-Invite" name="action_invite_again" type="object" class="btn-secondary"/>
+                        <div class="oe_kanban_details">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <strong><field name="name"/></strong>
+                                <div t-if="!record.parent_id.raw_value" class="o_row">
+                                    <t t-if="record.is_internal.value">
+                                        <button class="btn" disabled="True" title="This partner is linked to an internal User and already has access to the Portal.">Internal User</button>
                                     </t>
                                     <t t-else="">
-                                        <button string="Grant Access" name="action_grant_access" type="object" class="btn-secondary"/>
+                                        <t t-if="record.is_portal.value">
+                                            <button name="action_revoke_access" type="object" class="btn btn-secondary">Revoke Access</button>
+                                            <button name="action_invite_again" type="object" class="btn btn-secondary">Re-Invite</button>
+                                        </t>
+                                        <t t-else="">
+                                            <button name="action_grant_access" type="object" class="btn btn-secondary">Grant Access</button>
+                                        </t>
                                     </t>
-                                </t>
+                                </div>
                             </div>
+                            <ul></ul>
                         </div>
                     </div>
                 </t>
@@ -194,11 +250,16 @@
         <search>
             <field name="name"/>
             <field name="vat"/>
-            <field name="company_id" groups="base.group_multi_company"/>
+            <field name="company_id" groups="base.group_multi_company,base.group_system"/>
             <filter name="filterby_active" string="Active" domain="[('active', '=', True)]"/>
+            <filter name="filterby_authorized" string="Authorized" domain="[('is_portal', '=', True)]"/>
+            <filter name="filterby_user" string="User" domain="[('is_internal', '=', True)]"/>
             <separator/>
             <filter name="filterby_payment" string="Has Payments" domain="[('payable_ids', '!=', False)]"/>
             <filter name="filterby_no_payment" string="Has No Payments" domain="[('payable_ids', '=', False)]"/>
+            <separator/>
+            <filter name="filterby_following" string="My Followings" domain="[('message_is_follower', '=', True)]"/>
+            <filter name="filterby_no_following" string="My Unfollowings" domain="[('message_is_follower', '=', False)]"/>
             <separator/>
             <filter name="filterby_email_sent_today" string="Sent Email Today" domain="[('date_email_sent', '&gt;=', (datetime.datetime.combine(context_today(), datetime.time(0,0,0)).to_utc()).strftime('%Y-%m-%d %H:%M:%S'))]"/>
             <filter name="filterby_email_sent_before" string="Sent Email Before" domain="[('date_email_sent', '&lt;', (datetime.datetime.combine(context_today(), datetime.time(0,0,0)).to_utc()).strftime('%Y-%m-%d %H:%M:%S'))]"/>

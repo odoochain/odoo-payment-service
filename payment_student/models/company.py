@@ -2,10 +2,17 @@
 from odoo import models, fields
 from datetime import date
 
+SUBSYSTEMS = [
+    ('student_school', 'School'),
+    ('student_university', 'University'),
+]
+
+
 class ResCompany(models.Model):
     _inherit = 'res.company'
 
     system = fields.Selection(selection_add=[('student', 'Student Payment System')])
+    subsystem = fields.Selection(selection_add=SUBSYSTEMS)
     student_discount_sibling_active = fields.Boolean(string='Sibling Discount')
     student_discount_advance_active = fields.Boolean(string='Advance Discount')
     student_discount_sibling_rate = fields.Float(string='Sibling Discount Rate')

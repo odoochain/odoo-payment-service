@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-from odoo import fields, models, _
+from odoo import fields, models, api, _
 from odoo.exceptions import UserError
 
-class PaymentAcquirerJetcheckoutApiApplication(models.TransientModel):
+class PaymentPayloxApiApplication(models.TransientModel):
     _name = 'payment.acquirer.jetcheckout.api.application'
-    _description = 'Jetcheckout Application'
+    _description = 'Paylox API Application'
     _remote_name = 'jet.application'
 
     acquirer_id = fields.Many2one('payment.acquirer')
@@ -37,27 +37,65 @@ class PaymentAcquirerJetcheckoutApiApplication(models.TransientModel):
         if not self.is_active:
             raise UserError(_('Please activate this record before selecting it'))
 
-        self.acquirer_id.write({
+        acquirer = self.acquirer_id
+        acquirer.write({
             'jetcheckout_api_name': self.name,
             'jetcheckout_api_key': self.application_id,
             'jetcheckout_secret_key': self.secret_key
         })
 
-        self.acquirer_id.jetcheckout_journal_ids = [(5, 0, 0)] + [(0, 0, {
-            'name': pos.name,
-            'company_id': self.acquirer_id.company_id.id,
-            'website_id': self.acquirer_id.website_id.id
-        }) for pos in self.virtual_pos_ids.filtered(lambda x: x.is_active)]
+        ids, journals = [], []
+        pos_ids = self.virtual_pos_ids
+        for pos in pos_ids.filtered(lambda x: x.is_active):
+            ids.append(pos.res_id)
+            line = acquirer.paylox_journal_ids.filtered(lambda x: x.res_id == pos.res_id)
+            if line:
+                journals.append((1, line.id, {'name': pos.name}))
+            else:
+                journals.append((0, 0, {
+                    'res_id': pos.res_id,
+                    'name': pos.name,
+                    'company_id': self.acquirer_id.company_id.id,
+                    'website_id': self.acquirer_id.website_id.id
+                }))
 
-        self.acquirer_id._jetcheckout_api_sync_campaign(self.virtual_pos_ids)
+        for line in acquirer.paylox_journal_ids.filtered(lambda x: x.res_id not in ids):
+            journals.append((2, line.id, 0))
+
+        acquirer.paylox_journal_ids = journals
+        acquirer._paylox_api_sync_campaign(poses=pos_ids)
+        
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'redirect_acquirer',
+            'params': {
+                'back': True,
+                'id': self.acquirer_id.id,
+            }
+        }
+
+    @api.model
+    def create(self, vals):
+        res = super().create(vals)
+        if 'res_id' not in vals:
+            id = res.acquirer_id._rpc(res._remote_name, 'create', vals)
+            res.write({'res_id': id})
+        return res
 
     def write(self, vals):
+        res = super().write(vals)
+        if 'res_id' not in vals:
+            for app in self:
+                app.acquirer_id._rpc(app._remote_name, 'write', app.res_id, vals)
+
         if 'name' in vals:
             for app in self:
                 if app.in_use:
                     app.acquirer_id.jetcheckout_api_name = vals['name']
                     break
-        return super().write(vals)
+
+        self.acquirer_id._paylox_api_sync_campaign()
+        return res
 
     def unlink(self):
         if 'application' in self.env.context:
@@ -65,19 +103,23 @@ class PaymentAcquirerJetcheckoutApiApplication(models.TransientModel):
                 if app.in_use:
                     app.acquirer_id.jetcheckout_api_key = False
                     app.acquirer_id.jetcheckout_secret_key = False
-                    app.acquirer_id.jetcheckout_journal_ids = [(5, 0, 0)]
+                    app.acquirer_id.paylox_journal_ids = [(5, 0, 0)]
                     break
+                
+        if not self.env.context.get('no_sync'):
+            for app in self:
+                app.acquirer_id._rpc(app._remote_name, 'unlink', app.res_id)
         return super().unlink()
 
-class PaymentAcquirerJetcheckoutApiApplications(models.TransientModel):
+class PaymentPayloxApiApplications(models.TransientModel):
     _name = 'payment.acquirer.jetcheckout.api.applications'
-    _description = 'Jetcheckout Applications'
+    _description = 'Paylox API Applications'
 
     acquirer_id = fields.Many2one('payment.acquirer')
     application_ids = fields.One2many('payment.acquirer.jetcheckout.api.application', 'parent_id', 'Applications')
 
     def write(self, vals):
-        data = self.acquirer_id._jetcheckout_api_read()
-        self.acquirer_id._jetcheckout_api_upload(vals, data, self)
-        self.acquirer_id._jetcheckout_api_sync_campaign(self.application_ids.virtual_pos_ids)
+        data = self.acquirer_id._paylox_api_read()
+        self.acquirer_id._paylox_api_upload(vals, data, self)
+        self.acquirer_id._paylox_api_sync_campaign()
         return super().write(vals)

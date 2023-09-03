@@ -1,14 +1,14 @@
-odoo.define('payment_jetcheckout_api.payment_page', function (require) {
-"use strict";
+/** @odoo-module alias=paylox.api.page **/
+'use strict';
 
-var core = require('web.core');
-var publicWidget = require('web.public.widget');
-var Dialog = require('web.Dialog');
-var framework = require('payment_jetcheckout.framework');
+import core from 'web.core';
+import Dialog from 'web.Dialog';
+import publicWidget from 'web.public.widget';
+import framework from 'paylox.framework';
 
-var _t = core._t;
+const _t = core._t;
 
-publicWidget.registry.JetcheckoutPaymentApiOptions = publicWidget.Widget.extend({
+publicWidget.registry.payloxApiPage = publicWidget.Widget.extend({
     selector: '.payment-options',
     events: {
         'click div.payment-option': '_onClickPaymentOption',
@@ -27,7 +27,17 @@ publicWidget.registry.JetcheckoutPaymentApiOptions = publicWidget.Widget.extend(
     },
 });
 
-publicWidget.registry.JetcheckoutPaymentApiBank = publicWidget.Widget.extend({
+publicWidget.registry.PayloxtApiCard = publicWidget.Widget.extend({
+    selector: '.payment-credit-card',
+
+    start: function () {
+        return this._super.apply(this, arguments).then(function () {
+            framework.hideLoading();
+        });
+    },
+});
+
+publicWidget.registry.PayloxApiBank = publicWidget.Widget.extend({
     selector: '.payment-bank',
     events: {
         'click button#confirm': '_onBankConfirmButton',
@@ -41,14 +51,14 @@ publicWidget.registry.JetcheckoutPaymentApiBank = publicWidget.Widget.extend({
     },
 
     _onBankConfirmButton: function (ev) {
-        var self = this;
+        const self = this;
         let popup = new Dialog(self, {
-            size: 'medium',
             title: _t('Are you confirm the transaction?'),
+            size: 'medium',
             technical: false,
             buttons: [
                 {text: _t("Confirm"), classes: 'btn-primary btn-confirm'},
-                {text: _t("Cancel"), close: true},
+                {text: _t("Cancel"), classes: 'btn-secondary text-white', close: true},
             ],
             $content: $('<div/>', {
                 html: _t('Transaction is going to be concluded after your confirmation'),
@@ -81,7 +91,7 @@ publicWidget.registry.JetcheckoutPaymentApiBank = publicWidget.Widget.extend({
     },
 
     _onBankReturnButton: function () {
-        var self = this;
+        const self = this;
         framework.showLoading();
         this._rpc({
             route: '/payment/bank/return',
@@ -102,6 +112,4 @@ publicWidget.registry.JetcheckoutPaymentApiBank = publicWidget.Widget.extend({
             framework.hideLoading();
         });
     },
-});
-
 });

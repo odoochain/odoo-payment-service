@@ -2,6 +2,7 @@
 import json
 import random
 import ast
+import pytz
 
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -70,7 +71,6 @@ class PaymentDasboard(models.Model):
         }
 
     def _get_graph(self):
-        now = fields.Datetime.now()
         if self.period == 'days':
             datas = [
                 {'label': '00:00 - 03:59', 'value': 0.0, 'type': 'past'},
@@ -127,20 +127,37 @@ class PaymentDasboard(models.Model):
             format = DF
         else:
             raise UserError(_('This time period is not implemented'))
-            
-        template = """
-            SELECT %s AS line, COUNT(id) AS count, SUM(amount) AS amount
-            FROM payment_transaction
-            WHERE state = 'done'
-            AND company_id IN %s
+ 
+        user = self.env.user
+        restricted = user.has_group('payment_jetcheckout_system.group_system_own_partner')
+        restricted_join = """
+            LEFT JOIN res_partner p on t.partner_id = p.id
+            LEFT JOIN res_partner b on p.parent_id = b.id
+        """ if restricted else ""
+        restricted_where = f"""
+            AND (
+                p.id = {user.partner_id.id}
+                OR
+                p.user_id = {user.id}
+                OR
+                b.user_id = {user.id}
+            )
+        """ if restricted else ""
+        template = f"""
+            SELECT %s AS line, COUNT(t.id) AS count, SUM(t.amount) AS amount
+            FROM payment_transaction t
+            {restricted_join}
+            WHERE t.state = 'done'
+            {restricted_where}
+            AND t.company_id IN %s
         """
         query = []
         index = 0
         length = len(datas)
         companies = tuple(self.env.companies.ids + [0])
-        date_first, date_last = self._get_dates()
-        date_first = datetime.combine(date_first, datetime.min.time())
-        date_last = datetime.combine(date_last, datetime.min.time())
+        dates = self._get_dates()
+        date_first = datetime.combine(dates['start'] + dates['offset'], datetime.min.time())
+        date_last = datetime.combine(dates['end'] + dates['offset'], datetime.min.time())
         for i in range(0, length):
             date_start = date_first + relativedelta(**{period: i * interval})
             if i == length - 1:
@@ -148,10 +165,10 @@ class PaymentDasboard(models.Model):
             else:
                 date_end = date_start + relativedelta(**{period: interval})
 
-            if date_start <= now < date_end:
+            if date_start <= dates['now'] < date_end:
                 index = i
 
-            query.append("(" + template % (i, companies) + " AND create_date >= '" + date_start.strftime(format) + "' AND create_date < '" + date_end.strftime(format) + "')")
+            query.append("(" + template % (i, companies) + " AND t.create_date >= '" + (date_start - dates['offset']).strftime(format) + "' AND t.create_date < '" + (date_end - dates['offset']).strftime(format) + "')")
 
         self.env.cr.execute(" UNION ALL ".join(query))
         result = self.env.cr.dictfetchall()
@@ -174,14 +191,21 @@ class PaymentDasboard(models.Model):
         return [{'values': datas, 'title': _('Transactions'), 'key': graph_key, 'is_sample_data': is_sample_data}]
 
     def _get_dates(self):
-        today = fields.Date.today()
+        now = fields.Datetime.now()
+        timezone = self._context.get('tz') or self.env.user.tz
+        try:
+            tz = pytz.timezone(timezone)
+        except:
+            tz = pytz.timezone('UTC')
+        offset = tz.utcoffset(now)
+
         start = self.offset
         end = start - self.limit
         if self.period == 'days':
             vals_start = {'days': start}
             vals_end = {'days': end}
         elif self.period == 'weeks':
-            factor = 1 if today.weekday() else 0
+            factor = 1 if now.weekday() else 0
             vals_start = {'weekday': 0, 'weeks': start + factor}
             vals_end = {'weekday':0, 'weeks': end + factor}
         elif self.period == 'months':
@@ -192,19 +216,39 @@ class PaymentDasboard(models.Model):
             vals_end = {'day': 1, 'month': 1, 'years': end}
         else:
             raise UserError(_('This time period is not implemented'))
-        date_start = today - relativedelta(**vals_start)
-        date_end = today - relativedelta(**vals_end)
-        return date_start, date_end
+        date_start = now - relativedelta(**vals_start)
+        date_end = now - relativedelta(**vals_end)
+        return {
+            'start': (date_start + offset).replace(hour=0, minute=0, second=0, microsecond=0) - offset,
+            'end': (date_end + offset).replace(hour=0, minute=0, second=0, microsecond=0) - offset,
+            'offset': offset,
+            'now': now,
+        }
 
     def _get_domain(self):
-        date_start, date_end = self._get_dates()
+        dates = self._get_dates()
         companies = self.env.companies.ids
-        return [('company_id', 'in', companies), ('create_date', '>=', date_start), ('create_date', '<', date_end), ('state', 'in', ('done', 'pending', 'error'))]
+        return [('company_id', 'in', companies), ('create_date', '>=', dates['start']), ('create_date', '<', dates['end']), ('state', 'in', ('done', 'pending', 'error'))]
 
     def _get_domain_query(self):
-        date_start, date_end = self._get_dates()
+        dates = self._get_dates()
         companies = tuple(self.env.companies.ids + [0])
-        query = """
+        user = self.env.user
+        restricted = user.has_group('payment_jetcheckout_system.group_system_own_partner')
+        restricted_join = """
+            LEFT JOIN res_partner p on t.partner_id = p.id
+            LEFT JOIN res_partner b on p.parent_id = b.id
+        """ if restricted else ""
+        restricted_where = f"""
+            AND (
+                p.id = {user.partner_id.id}
+                OR
+                p.user_id = {user.id}
+                OR
+                b.user_id = {user.id}
+            )
+        """ if restricted else ""
+        query = f"""
             SELECT
                 COUNT(*) AS total_count,
                 SUM(t.amount) AS total_amount,
@@ -216,18 +260,25 @@ class PaymentDasboard(models.Model):
                 c.id AS currency_id
             FROM payment_transaction t
             LEFT JOIN res_currency c ON t.currency_id = c.id
+            {restricted_join}
             WHERE t.state IN ('done', 'pending', 'error')
             AND t.create_date >= %s
             AND t.create_date < %s
             AND t.company_id IN %s
+            {restricted_where}
             GROUP BY c.name, c.id
         """
-        self.env.cr.execute(query, (date_start, date_end, companies))
+        self.env.cr.execute(query, (dates['start'], dates['end'], companies))
         return self.env.cr.dictfetchall()
+
+    @api.model    
+    def get_url(self):
+        return self.get_base_url()
 
     def action_transactions(self):
         action = self.env.ref('payment_jetcheckout_system.action_transaction').sudo().read()[0]
         action['domain'] = self._get_domain()
+        action['context'] = {'settings': True, 'create': False, 'edit': False, 'delete': False, 'search_default_filterby_%s' % self.code: True}
         return action
 
     def action_success_transactions(self):
@@ -245,7 +296,14 @@ class PaymentDasboard(models.Model):
         action['domain'].append(('state', '=', 'done'))
         action['view_mode'] = 'pivot,list,graph,kanban,form'
         action['views'] = []
-        context = ast.literal_eval(action['context']) if action['context'] else {}
+
+        context = {}
+        if action['context']:
+            if isinstance(action['context'], str):
+                context = ast.literal_eval(action['context'])
+            else:
+                context = action['context']
+
         context['group_by'] = 'jetcheckout_vpos_name'
         action['context'] = context
         return action

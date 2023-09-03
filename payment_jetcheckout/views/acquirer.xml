@@ -5,25 +5,26 @@
     <field name="inherit_id" ref="payment.payment_acquirer_form"/>
     <field name="arch" type="xml">
         <xpath expr='//group[@name="acquirer"]' position="after">
-            <group attrs="{'invisible': ['|',('provider', '!=', 'jetcheckout'),('jetcheckout_username','!=',False)]}">
+            <group attrs="{'invisible': ['|',('provider', '!=', 'jetcheckout'),('jetcheckout_api_key','!=',False)]}">
                 <div class="justify-content-center row">
-                    <button name="action_jetcheckout_signin" type="object" class="btn-primary mx-2 my-2" string="Sign in with an account"/>
-                    <button name="action_jetcheckout_signup" type="object" class="btn-primary mx-2 my-2" string="Create a new account"/>
+                    <button name="action_paylox_signin" type="object" class="btn-primary mx-2 my-2" string="Sign in with an account"/>
+                    <button name="action_paylox_signup" type="object" class="btn-primary mx-2 my-2" string="Create a new account"/>
                 </div>
             </group>
-            <group attrs="{'invisible': ['|',('provider', '!=', 'jetcheckout'),('jetcheckout_username','=',False)]}">
+            <group attrs="{'invisible': ['|',('provider', '!=', 'jetcheckout'),('jetcheckout_api_key','=',False)]}">
                 <group string="Credentials">
                     <p class="text-center">
-                        You are signed as <strong><field name="jetcheckout_username"/></strong>
+                        <span attrs="{'invisible': [('jetcheckout_username','=',False)]}">You are signed as <strong><field name="jetcheckout_username"/></strong></span>
+                        <span attrs="{'invisible': [('jetcheckout_username','!=',False)]}">You are signed <strong>manually</strong></span>
                         <br/>
-                        <button name="action_jetcheckout_signout" type="object" class="btn-secondary my-2" string="Sign Out" icon="fa-sign-out"/>
+                        <button name="action_paylox_signout" type="object" class="btn-secondary my-2" string="Sign Out" icon="fa-sign-out"/>
                     </p>
                 </group>
                 <group string="Applications" attrs="{'invisible': [('jetcheckout_api_key','!=',False)]}">
                     <p class="text-center">
                         No application is selected
                         <br/>
-                        <button name="action_jetcheckout_application" type="object" class="btn-secondary my-2" string="Applications" icon="fa-list-ol"/>
+                        <button name="action_paylox_application" type="object" class="btn-secondary my-2" string="Applications" icon="fa-list-ol"/>
                     </p>
                 </group>
                 <group string="Applications" attrs="{'invisible': [('jetcheckout_api_key','=',False)]}">
@@ -32,9 +33,10 @@
                     <field name="jetcheckout_api_key" string="API Key" readonly="1"/>
                     <field name="jetcheckout_secret_key" string="Secret Key" password="True" readonly="1"/>
                     <field name="jetcheckout_gateway_api" string="API URL" placeholder="https://api.jetcheckout.com" attrs="{'invisible': [('jetcheckout_gateway_api','=',False)]}" readonly="1"/>
-                    <div class="justify-content-center row">
-                        <button name="action_jetcheckout_application" type="object" class="btn-secondary my-2" string="Applications" icon="fa-list-ol"/>
-                        <button name="action_jetcheckout_pos" type="object" class="btn-secondary my-2" string="Virtual Pos" icon="fa-certificate"/>
+                    <div class="justify-content-center row" colspan="2" attrs="{'invisible': [('jetcheckout_username','=',False)]}">
+                        <button name="action_paylox_application" type="object" class="btn-secondary my-2" string="Applications" icon="fa-list-ol"/>
+                        <button name="action_paylox_pos" type="object" class="btn-secondary my-2" string="Virtual Pos" icon="fa-certificate"/>
+                        <button name="action_paylox_campaign" type="object" class="btn-secondary my-2" string="Campaigns" icon="fa-star"/>
                     </div>
                 </group>
             </group>
@@ -48,20 +50,55 @@
             <field name="jetcheckout_payment_page" widget="boolean_toggle" attrs="{'invisible': [('provider', '!=', 'jetcheckout')]}"/>
         </xpath>
         <xpath expr='//page[@name="acquirer_credentials"]' position="after">
-            <page string="Journals" attrs="{'invisible': [('provider', '!=', 'jetcheckout')]}">
-                <field name="jetcheckout_journal_ids" nolabel="1" colspan="2" context="{'default_company_id': company_id, 'default_website_id': website_id}">
-                    <tree editable="bottom" create="0" delete="0">
+            <page name="methods" string="Methods" attrs="{'invisible': [('provider', '!=', 'jetcheckout')]}">
+                <field name="paylox_journal_ids" nolabel="1" colspan="2" context="{'default_company_id': company_id, 'default_website_id': website_id}">
+                    <tree create="0" delete="0">
                         <field name="name"/>
-                        <field name="currency_id"/>
-                        <field name="journal_id" required="1" domain="[('type','=','bank'),('company_id','=',company_id)]"/>
-                        <field name="partner_id" required="1" domain="['|',('company_id','=',False),('company_id','=',company_id)]"/>
-                        <field name="company_id" optional="hide"/>
-                        <field name="website_id" optional="hide"/>
+                        <field name="journal_id" domain="[('type', '=', 'bank'), ('company_id', '=', company_id)]" options="{'no_create': True, 'no_open': True}"/>
+                        <field name="partner_id" domain="['|', ('company_id', '=', False),('company_id', '=', company_id)]" options="{'no_create': True, 'no_open': True}"/>
+                        <field name="currency_id" options="{'no_create': True, 'no_open': True}" optional="hide" force_save="1"/>
+                        <field name="company_id" invisible="1" options="{'no_create': True, 'no_open': True}" force_save="1"/>
+                        <field name="website_id" invisible="1" options="{'no_create': True, 'no_open': True}" force_save="1"/>
                     </tree>
+                    <form>
+                        <sheet>
+                            <div class="oe_title">
+                                <label for="name"/>
+                                <h1>
+                                    <field name="name"/>
+                                </h1>
+                            </div>
+                            <group>
+                                <group>
+                                    <field name="journal_id" domain="[('type', '=', 'bank'), ('company_id', '=', company_id)]" options="{'no_create': True, 'no_open': True}" attrs="{'required': [('secondary_ok', '=', False)]}"/>
+                                    <field name="partner_id" domain="[('is_company', '=', True), '|', ('company_id', '=', False), ('company_id', '=', company_id)]" options="{'no_create': True, 'no_open': True}" attrs="{'required': [('secondary_ok', '=', False)]}"/>
+                                    <field name="currency_id" options="{'no_create': True, 'no_open': True}" force_save="1" attrs="{'invisible': [('currency_id', '=', False)]}"/>
+                                    <field name="company_id" invisible="1" options="{'no_create': True, 'no_open': True}" force_save="1"/>
+                                    <field name="website_id" invisible="1" options="{'no_create': True, 'no_open': True}" force_save="1"/>
+                                </group>
+                                <group>
+                                    <div class="row justify-content-center" colspan="2">
+                                        <label for="secondary_ok" class="font-weight-bold mr-3"/>
+                                        <field name="secondary_ok" widget="boolean_toggle" nolabel="1"/>
+                                    </div>
+                                    <field name="line_ids" nolabel="1" colspan="2" context="{'default_company_id': company_id, 'default_website_id': website_id}" attrs="{'invisible': [('secondary_ok', '=', False)]}">
+                                        <tree editable="bottom">
+                                            <field name="name"/>
+                                            <field name="journal_id" domain="[('type', '=', 'bank'), ('company_id', '=', company_id)]" options="{'no_create': True, 'no_open': True}"/>
+                                            <field name="partner_id" domain="[('is_company','=',True), '|', ('company_id', '=', False),('company_id', '=', company_id)]" options="{'no_create': True, 'no_open': True}"/>
+                                            <field name="currency_id" options="{'no_create': True, 'no_open': True}" optional="hide" force_save="1"/>
+                                            <field name="company_id" invisible="1" options="{'no_create': True, 'no_open': True}" force_save="1"/>
+                                            <field name="website_id" invisible="1" options="{'no_create': True, 'no_open': True}" force_save="1"/>
+                                        </tree>
+                                    </field>
+                                </group>
+                            </group>
+                        </sheet>
+                    </form>
                 </field>
             </page>
             <page string="Banks" attrs="{'invisible': [('provider', '!=', 'transfer')]}">
-                <field name="jetcheckout_bank_ids" nolabel="1" colspan="2">
+                <field name="paylox_bank_ids" nolabel="1" colspan="2">
                     <tree editable="bottom">
                         <field name="sequence" widget="handle"/>
                         <field name="logo" widget="image" class="oe_avatar text-center"/>
@@ -76,6 +113,9 @@
             <page string="Terms &amp; Conditions" attrs="{'invisible': [('provider', '!=', 'jetcheckout')]}">
                 <field name="jetcheckout_terms" nolabel="1" colspan="2" widget="html" options="{'style-inline': true, 'codeview': true}"/>
             </page>
+        </xpath>
+        <xpath expr='//field[@name="country_ids"]' position="before">
+            <field name="currency_ids" widget="many2many_tags" placeholder="Select currencies. Leave empty to use default." options="{'no_open': True, 'no_create': True}"/>
         </xpath>
         <xpath expr='//field[@name="pre_msg"]' position="attributes">
             <attribute name="widget">html</attribute>
@@ -99,9 +139,9 @@
             <div colspan="2">
                 <div class="font-weight-bold m-auto text-center d-flex align-items-center justify-content-center">
                     <div class="float-left text-primary">
-                        <h1 attrs="{'invisible': ['|',('successful','=',False),('cancelled','!=',False)]}"><i class="fa fa-check text-primary"/></h1>
-                        <h1 attrs="{'invisible': ['|',('successful','=',False),('cancelled','=',False)]}"><i class="fa fa-undo text-primary"/></h1>
-                        <h1 attrs="{'invisible': [('successful','!=',False)]}"><i class="fa fa-times text-primary"/></h1>
+                        <h1 attrs="{'invisible': ['|',('successful','=',False),('cancelled','!=',False)]}"><i class="fa fa-check-square-o text-primary"/></h1>
+                        <h1 attrs="{'invisible': ['|',('successful','=',False),('cancelled','=',False)]}"><i class="fa fa-share-square-o text-primary"/></h1>
+                        <h1 attrs="{'invisible': [('successful','!=',False)]}"><i class="fa fa-minus-square-o text-primary"/></h1>
                     </div>
                     <div class="ml-4 text-primary" attrs="{'invisible': ['|',('successful','=',False),('cancelled','!=',False)]}"><h2>Transaction is successful</h2></div>
                     <div class="ml-4 text-primary" attrs="{'invisible': ['|',('successful','=',False),('cancelled','=',False)]}"><h2>Transaction is cancelled</h2></div>
@@ -111,12 +151,12 @@
             <group>
                 <group>
                     <field name="date"/>
-                    <field name="name"/>
+                    <field name="vpos_id" invisible="1"/>
+                    <field name="vpos_name"/>
                     <field name="successful" widget="boolean_toggle" style="pointer-events: none;"/>
                     <field name="completed" widget="boolean_toggle" style="pointer-events: none;"/>
                     <field name="threed" widget="boolean_toggle" style="pointer-events: none;"/>
                     <field name="cancelled" widget="boolean_toggle" style="pointer-events: none;"/>
-                    <field name="refunded" widget="boolean_toggle" style="pointer-events: none;"/>
                 </group>
                 <group>
                     <field name="currency_id" invisible="1"/>
@@ -159,7 +199,7 @@
                 </group>
             </group>
             <footer>
-                <button name="confirm" type="object" class="btn-primary" string="Refund" icon="fa-undo"/>
+                <button name="confirm" type="object" class="btn-primary text-uppercase" string="Refund" icon="fa-undo"/>
                 <button special="cancel" class="btn-secondary text-uppercase" string="Close" icon="fa-times"/>
             </footer>
         </form>

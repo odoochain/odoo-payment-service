@@ -1,0 +1,520 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* payment_syncops
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-08-14 20:41+0000\n"
+"PO-Revision-Date: 2023-08-14 20:41+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: payment_syncops
+#: code:addons/payment_syncops/wizards/sync.py:0
+#, python-format
+msgid ""
+"\"Get Invoice List\" method must be activated to get records by their "
+"invoice date range"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.transaction_form
+msgid ""
+"<span class=\"o_stat_value\">Connector</span><span "
+"class=\"o_stat_text\">Failed</span>"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.transaction_form
+msgid ""
+"<span class=\"o_stat_value\">Connector</span><span "
+"class=\"o_stat_text\">Succeeded</span>"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.form_wizard_sync
+msgid ""
+"<strong>Get Invoice List</strong> method must be activated to get records by"
+" their invoice date range"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.page_ledger
+#: model_terms:ir.ui.view,arch_db:payment_syncops.tree_wizard_sync_line_item_invoice
+msgid "Amount"
+msgstr ""
+
+#. module: payment_syncops
+#. openerp-web
+#: code:addons/payment_syncops/static/src/js/connector.js:0
+#, python-format
+msgid "An error occured."
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.page_ledger
+msgid "Apply"
+msgstr ""
+
+#. module: payment_syncops
+#. openerp-web
+#: code:addons/payment_syncops/static/src/xml/connector.xml:0
+#: model_terms:ir.ui.view,arch_db:payment_syncops.page_ledger
+#: model_terms:ir.ui.view,arch_db:payment_syncops.payment_balance
+#: model_terms:ir.ui.view,arch_db:payment_syncops.tree_wizard_sync_line_item_balance
+#: model_terms:ir.ui.view,arch_db:payment_syncops.tree_wizard_sync_line_partner
+#, python-format
+msgid "Balance"
+msgstr ""
+
+#. module: payment_syncops
+#: code:addons/payment_syncops/models/transaction.py:0
+#, python-format
+msgid ""
+"Cancelled status of this transaction has not been posted to connector yet."
+msgstr ""
+
+#. module: payment_syncops
+#. openerp-web
+#: code:addons/payment_syncops/static/src/xml/connector.xml:0
+#, python-format
+msgid "City"
+msgstr ""
+
+#. module: payment_syncops
+#. openerp-web
+#: code:addons/payment_syncops/static/src/xml/connector.xml:0
+#, python-format
+msgid "Company"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_payment_transaction__jetcheckout_connector_partner_name
+msgid "Connector Partner Name"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_payment_transaction__jetcheckout_connector_partner_ref
+msgid "Connector Partner Reference"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_payment_transaction__jetcheckout_connector_partner_vat
+msgid "Connector Partner VAT"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_payment_transaction__jetcheckout_connector_state
+msgid "Connector State"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_payment_transaction__jetcheckout_connector_state_message
+msgid "Connector State Message"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_payment_transaction__jetcheckout_connector_ok
+msgid "Connector Transaction"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.transaction_search
+msgid "Connector Transactions"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.tree_wizard_sync_line_item_invoice
+msgid "Currency"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields.selection,name:payment_syncops.selection__syncops_sync_wizard__type_item_subtype__balance
+msgid "Current Balances"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.page_ledger
+#: model_terms:ir.ui.view,arch_db:payment_syncops.tree_wizard_sync_line_item_invoice
+msgid "Date"
+msgstr ""
+
+#. module: payment_syncops
+#: code:addons/payment_syncops/controllers/main.py:0
+#, python-format
+msgid "Date format cannot be empty"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.page_ledger
+msgid "Description"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.tree_wizard_sync_line_item_invoice
+msgid "Document"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.page_ledger
+msgid "Due Date"
+msgstr ""
+
+#. module: payment_syncops
+#. openerp-web
+#: code:addons/payment_syncops/static/src/xml/connector.xml:0
+#: model_terms:ir.ui.view,arch_db:payment_syncops.tree_wizard_sync_line_partner
+#, python-format
+msgid "Email"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.form_wizard_sync
+#: model_terms:ir.ui.view,arch_db:payment_syncops.page_ledger
+msgid "End Date"
+msgstr ""
+
+#. module: payment_syncops
+#: code:addons/payment_syncops/controllers/main.py:0
+#, python-format
+msgid "End date cannot be empty"
+msgstr ""
+
+#. module: payment_syncops
+#. openerp-web
+#: code:addons/payment_syncops/static/src/js/connector.js:0
+#: code:addons/payment_syncops/static/src/js/connector.js:0
+#, python-format
+msgid "Error"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.payment_transaction_list
+msgid "Excel"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.transaction_search
+msgid "Failed Connector Transactions"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model,name:payment_syncops.model_ir_http
+msgid "HTTP Routing"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_syncops_sync_wizard_line__invoice_id
+msgid "Invoice"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_syncops_sync_wizard_line__invoice_amount
+msgid "Invoice Amount"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_syncops_sync_wizard_line__invoice_currency
+msgid "Invoice Currency"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_syncops_sync_wizard_line__invoice_date
+msgid "Invoice Date"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_syncops_sync_wizard_line__invoice_name
+msgid "Invoice Name"
+msgstr ""
+
+#. module: payment_syncops
+#. openerp-web
+#: code:addons/payment_syncops/static/src/xml/connector.xml:0
+#: model_terms:ir.ui.view,arch_db:payment_syncops.tree_wizard_sync_line_partner
+#, python-format
+msgid "Mobile"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.page_ledger
+msgid "Name"
+msgstr ""
+
+#. module: payment_syncops
+#. openerp-web
+#: code:addons/payment_syncops/static/src/xml/connector.xml:0
+#, python-format
+msgid "No partners found. If you think that it is an error, please try again."
+msgstr ""
+
+#. module: payment_syncops
+#. openerp-web
+#: code:addons/payment_syncops/static/src/xml/connector.xml:0
+#, python-format
+msgid "No records found. If you think that it is an error, please try again."
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_syncops_sync_wizard_line__partner_id
+msgid "Partner"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_syncops_sync_wizard_line__partner_balance
+msgid "Partner Balance"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_syncops_sync_wizard_line__partner_email
+msgid "Partner Email"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_syncops_sync_wizard_line__partner_mobile
+msgid "Partner Mobile"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_syncops_sync_wizard_line__partner_name
+msgid "Partner Name"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_syncops_sync_wizard_line__partner_phone
+msgid "Partner Phone"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_syncops_sync_wizard_line__partner_ref
+msgid "Partner Ref"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_syncops_sync_wizard_line__partner_vat
+msgid "Partner Vat"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.payment_sidebar
+msgid "Partners"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.page_ledger
+msgid "Payment"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model,name:payment_syncops.model_payment_transaction
+msgid "Payment Transaction"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.tree_wizard_sync_line_partner
+msgid "Phone"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.transaction_form
+msgid "Process Connector"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.tree_wizard_sync_line_partner
+msgid "Reference"
+msgstr ""
+
+#. module: payment_syncops
+#: code:addons/payment_syncops/models/transaction.py:0
+#, python-format
+msgid ""
+"Refunded status of this transaction has not been posted to connector yet."
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.payment_transaction_list
+#: model_terms:ir.ui.view,arch_db:payment_syncops.transaction_form
+msgid "Related Partner Name"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.payment_transaction_list
+#: model_terms:ir.ui.view,arch_db:payment_syncops.transaction_form
+msgid "Related Partner VAT"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.payment_sidebar
+msgid "Reset"
+msgstr ""
+
+#. module: payment_syncops
+#. openerp-web
+#: code:addons/payment_syncops/static/src/xml/connector.xml:0
+#, python-format
+msgid "Search"
+msgstr ""
+
+#. module: payment_syncops
+#. openerp-web
+#: code:addons/payment_syncops/static/src/xml/connector.xml:0
+#, python-format
+msgid "Search partner..."
+msgstr ""
+
+#. module: payment_syncops
+#. openerp-web
+#: code:addons/payment_syncops/static/src/xml/connector.xml:0
+#: model_terms:ir.ui.view,arch_db:payment_syncops.payment_balance
+#, python-format
+msgid "See Ledger"
+msgstr ""
+
+#. module: payment_syncops
+#. openerp-web
+#: code:addons/payment_syncops/static/src/xml/connector.xml:0
+#, python-format
+msgid "Select"
+msgstr ""
+
+#. module: payment_syncops
+#. openerp-web
+#: code:addons/payment_syncops/static/src/js/connector.js:0
+#, python-format
+msgid "Select a partner"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.form_wizard_sync
+#: model_terms:ir.ui.view,arch_db:payment_syncops.page_ledger
+msgid "Start Date"
+msgstr ""
+
+#. module: payment_syncops
+#: code:addons/payment_syncops/controllers/main.py:0
+#, python-format
+msgid "Start date cannot be empty"
+msgstr ""
+
+#. module: payment_syncops
+#: code:addons/payment_syncops/controllers/main.py:0
+#, python-format
+msgid "Start date cannot be later than end date"
+msgstr ""
+
+#. module: payment_syncops
+#: code:addons/payment_syncops/models/transaction.py:0
+#, python-format
+msgid ""
+"Successful status of this transaction has not been posted to connector yet."
+msgstr ""
+
+#. module: payment_syncops
+#. openerp-web
+#: code:addons/payment_syncops/static/src/xml/item.xml:0
+#: code:addons/payment_syncops/static/src/xml/partner.xml:0
+#, python-format
+msgid "Sync"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.form_wizard_sync
+msgid "Synchronization Date Range"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.form_wizard_sync
+msgid "Synchronization Type"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_syncops_sync_wizard__system
+msgid "System"
+msgstr ""
+
+#. module: payment_syncops
+#: code:addons/payment_syncops/models/transaction.py:0
+#, python-format
+msgid "This transaction has been successfully posted to connector."
+msgstr ""
+
+#. module: payment_syncops
+#: code:addons/payment_syncops/models/transaction.py:0
+#, python-format
+msgid ""
+"This transaction has not been successfully posted to connector.\n"
+"%s"
+msgstr ""
+
+#. module: payment_syncops
+#. openerp-web
+#: code:addons/payment_syncops/static/src/xml/connector.xml:0
+#, python-format
+msgid "Total Debit & Credit"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.payment_balance
+msgid "Total Debit &amp; Credit"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.page_ledger
+msgid "Type"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_syncops_sync_wizard__type_item_date_end
+msgid "Type Item Date End"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_syncops_sync_wizard__type_item_date_start
+msgid "Type Item Date Start"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_syncops_sync_wizard__type_item_subtype
+msgid "Type Item Subtype"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields,field_description:payment_syncops.field_syncops_sync_wizard__type_item_subtype_ok
+msgid "Type Item Subtype Ok"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model.fields.selection,name:payment_syncops.selection__syncops_sync_wizard__type_item_subtype__invoice
+msgid "Unpaid Invoices"
+msgstr ""
+
+#. module: payment_syncops
+#. openerp-web
+#: code:addons/payment_syncops/static/src/xml/connector.xml:0
+#: model_terms:ir.ui.view,arch_db:payment_syncops.tree_wizard_sync_line_item_balance
+#: model_terms:ir.ui.view,arch_db:payment_syncops.tree_wizard_sync_line_partner
+#, python-format
+msgid "VAT"
+msgstr ""
+
+#. module: payment_syncops
+#: model_terms:ir.ui.view,arch_db:payment_syncops.company_hierarchy_line
+msgid "syncOPS Integration"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model,name:payment_syncops.model_syncops_sync_wizard
+msgid "syncOPS Sync Wizard"
+msgstr ""
+
+#. module: payment_syncops
+#: model:ir.model,name:payment_syncops.model_syncops_sync_wizard_line
+msgid "syncOPS Sync Wizard Lines"
+msgstr ""

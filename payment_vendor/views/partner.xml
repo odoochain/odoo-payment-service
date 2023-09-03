@@ -25,6 +25,36 @@
     <field name="inherit_id" ref="payment_jetcheckout_system.partner_tree"/>
     <field name="arch" type="xml">
         <xpath expr='//field[@name="parent_id"]' position="replace"/>
+        <xpath expr='//field[@name="email"]' position="after">
+            <field name="campaign_id" string="Campaign" optional="show"/>
+            <field name="is_portal" string="Authorized"/>
+        </xpath>
+        <xpath expr='//field[@name="company_id"]' position="before">
+            <field name="user_id" optional="hide"/>
+            <field name="team_id" optional="hide"/>
+            <field name="category_id" widget="many2many_tags" options="{'color_field': 'color', 'no_create': True}" optional="hide"/>
+        </xpath>
+        <xpath expr='//tree' position="inside">
+            <button name="action_redirect_payment_link" type="object" string="Payment Link" icon="fa-link" groups="payment_jetcheckout_system.group_show_payment_link"/>
+            <button name="action_redirect_payment_page" type="object" string="Payment Page" icon="fa-credit-card" attrs="{'invisible': [('is_portal', '=', False)]}"/>
+        </xpath>
+    </field>
+    </record>
+
+    <record id="parent_kanban" model="ir.ui.view">
+    <field name="name">res.vendor.parent.kanban</field>
+    <field name="model">res.partner</field>
+    <field name="mode">primary</field>
+    <field name="inherit_id" ref="payment_jetcheckout_system.partner_kanban"/>
+    <field name="arch" type="xml">
+        <xpath expr='//div[@class="oe_kanban_details"]/ul' position="after">
+            <div t-if="!record.parent_id.raw_value" class="o_row">
+                <button name="action_redirect_payment_link" type="object" class="btn btn-secondary" groups="payment_jetcheckout_system.group_show_payment_link"><i class="fa fa-link mr-2"/>Payment Link</button>
+                <t t-if="record.is_internal.value">
+                    <button name="action_redirect_payment_page" type="object" class="btn btn-secondary"><i class="fa fa-credit-card mr-2"/>Payment Page</button>
+                </t>
+            </div>
+        </xpath>
     </field>
     </record>
 
@@ -37,6 +67,7 @@
         <xpath expr='//header' position="replace"/>
         <xpath expr='//field[@name="company_id"]' position="before">
             <field name="ref"/>
+            <field name="acquirer_branch_id" string="Branch" domain="[('company_id', '=', company_id)]"/>
         </xpath>
         <xpath expr='//group[@name="communication"]' position="replace"/>
         <xpath expr='//group[@name="payment"]' position="replace"/>
@@ -60,6 +91,19 @@
         <xpath expr='//page[@name="siblings"]' position="replace"/>
         <xpath expr='//page[@name="children"]' position="attributes">
             <attribute name="string">Contacts</attribute>
+        </xpath>
+        <xpath expr='//group[@name="general"]' position="inside">
+            <field name="category_id" widget="many2many_tags" domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]" options="{'color_field': 'color', 'no_create': True}" placeholder="Tags..."/>
+        </xpath>
+        <xpath expr='//notebook' position="inside">
+            <page name="other" string="Other">
+                <group>
+                    <group string="Representatives">
+                        <field name="user_id" options="{'no_create': True}" domain="[('share', '=', False)]"/>
+                        <field name="team_id" options="{'no_create': True}"/>
+                    </group>
+                </group>
+            </page>
         </xpath>
     </field>
     </record>
@@ -93,6 +137,12 @@
     <field name="arch" type="xml">
         <xpath expr='//field[@name="vat"]' position="after">
             <field name="mobile"/>
+            <field name="user_id"/>
+            <field name="team_id"/>
+        </xpath>
+        <xpath expr='//group' position="inside">
+            <filter string="Sales Person" name="groupby_salesperson" domain="[]" context="{'group_by':'user_id'}"/>
+            <filter string="Sales Team" name="groupby_salesteam" domain="[]" context="{'group_by':'team_id'}"/>
         </xpath>
     </field>
     </record>

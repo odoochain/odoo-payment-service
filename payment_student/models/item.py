@@ -6,11 +6,19 @@ from odoo.exceptions import UserError
 class PaymentItem(models.Model):
     _inherit = 'payment.item'
 
+    system = fields.Selection(selection_add=[('student', 'Student Payment System')])
+
     school_id = fields.Many2one('res.student.school', related='child_id.school_id', store=True, readonly=True, ondelete='restrict')
     class_id = fields.Many2one('res.student.class', related='child_id.class_id', store=True, readonly=True, ondelete='restrict')
     bursary_id = fields.Many2one('res.student.bursary', related='child_id.bursary_id', store=True, readonly=True, ondelete='restrict')
     term_id = fields.Many2one('res.student.term', ondelete='restrict')
     payment_type_id = fields.Many2one('res.student.payment.type', ondelete='restrict')
+    bursary_amount = fields.Monetary(string='Bursary Discount', readonly=True)
+    prepayment_amount = fields.Monetary(string='Prepayment Discount', readonly=True)
+
+    system_student_faculty_id = fields.Many2one('res.student.faculty', related='parent_id.system_student_faculty_id', store=True, readonly=True, ondelete='restrict')
+    system_student_department_id = fields.Many2one('res.student.department', related='parent_id.system_student_department_id', store=True, readonly=True, ondelete='restrict')
+    system_student_program_id = fields.Many2one('res.student.program', related='parent_id.system_student_program_id', store=True, readonly=True, ondelete='restrict')
 
     @api.onchange('child_id','term_id','payment_type_id')
     def _onchange_student_id(self):
@@ -50,12 +58,12 @@ class PaymentItem(models.Model):
         return action
 
     def get_student_payment_table(self):
-        if len(self.mapped('company_id')) != 1:
+        company = self.mapped('company_id')
+        if not len(company) == 1:
             return False
             #raise UserError(_('Payment table cannot be related to more than one company'))
-
-        company = self.mapped('company_id')
-        if not company.system == 'student':
+        
+        if any(not system == 'student' for system in self.mapped('system')):
             return False
 
         currency = company.currency_id
@@ -122,10 +130,10 @@ class PaymentItem(models.Model):
             subbursaries.append({'id': student, 'amount': 0})
             totals.append({'id': student, 'amount': 0})
 
-        advance_discount = company.get_student_discount()
-        sibling_discount = 0
+        discount_single = company.get_student_discount()
+        discount_sibling = 0
         if len(siblings) > 1 or len(siblings) == 1 and any(line._is_student_sibling_paid() for line in self):
-            sibling_discount = company.student_discount_sibling_rate if company.student_discount_sibling_active else 0
+            discount_sibling = company.student_discount_sibling_rate if company.student_discount_sibling_active else 0
 
         for line in self:
             student_id = line.child_id.id
@@ -133,8 +141,8 @@ class PaymentItem(models.Model):
             term_id = line.term_id.id
             type_id = line.payment_type_id.id
             amount = line.amount
-            discount_amount = advance_discount / -100
-            sibling_amount = sibling_discount / -100
+            discount_amount = discount_single / -100
+            sibling_amount = discount_sibling / -100
             bursary_amount = line.bursary_id.percentage / -100
 
             if company.student_discount_sibling_maximum:
@@ -226,8 +234,8 @@ class PaymentItem(models.Model):
             'subsiblings': subsiblings,
             'subbursaries': subbursaries,
             'totals': totals,
-            'advance_discount': advance_discount,
-            'sibling_discount': sibling_discount,
+            'discount_single': discount_single,
+            'discount_sibling': discount_sibling,
             'has_payment': len(list(filter(lambda x: x != 0, payment_ids))) > 1,
             'has_bursary': len(list(filter(lambda x: x != 0, bursary_ids))) > 0,
             'currency': currency,

@@ -14,32 +14,44 @@ class Partner(models.Model):
             else:
                 partner.school_ids = [(6, 0, partner.mapped('child_ids.school_id').ids)]
 
+    system = fields.Selection(selection_add=[('student', 'Student Payment System')])
     school_id = fields.Many2one('res.student.school', ondelete='restrict')
     class_id = fields.Many2one('res.student.class', ondelete='restrict')
     bursary_id = fields.Many2one('res.student.bursary', ondelete='restrict')
     school_ids = fields.Many2many('res.student.school', string='Schools', compute='_compute_schools', store=True, readonly=True)
 
+    system_student_faculty_id = fields.Many2one('res.student.faculty', string='Faculty', ondelete='restrict')
+    system_student_department_id = fields.Many2one('res.student.department', string='Department', ondelete='restrict')
+    system_student_program_id = fields.Many2one('res.student.program', string='Program', ondelete='restrict')
+
     @api.model
     def create(self, vals):
         res = super().create(vals)
-        if res.company_id.system == 'student' and res.parent_id:
-            templates = self.env['res.student.payment.template'].search([
-                ('school_id','=',res.school_id.id),
-                '|', ('class_id','=',res.class_id.id), ('class_id','=',False),
-                ('company_id','=',res.company_id.id),
-            ])
-            if templates:
-                val = []
-                for template in templates:
-                    val.append({
-                        'child_id': res.id,
-                        'parent_id': res.parent_id.id,
-                        'term_id': template.term_id.id,
-                        'payment_type_id': template.payment_type_id.id,
-                        'amount': template.amount,
-                        'company_id': res.company_id.id,
-                    })
-                self.env['payment.item'].sudo().create(val)
+        if res.company_id.system == 'student':
+            if res.parent_id:
+                templates = self.env['res.student.payment.template'].search([
+                    ('school_id', '=', res.school_id.id),
+                    '|', ('class_id', '=', res.class_id.id), ('class_id', '=', False),
+                    ('company_id', '=', res.company_id.id),
+                ])
+                if templates:
+                    val = []
+                    term_id = self.env.context.get('term_id', False)
+                    for template in templates:
+                        val.append({
+                            'child_id': res.id,
+                            'parent_id': res.parent_id.id,
+                            'term_id': term_id or template.term_id.id,
+                            'payment_type_id': template.payment_type_id.id,
+                            'amount': template.amount,
+                            'campaign_id': res.parent_id.campaign_id.id,
+                            'company_id': res.company_id.id,
+                        })
+                    self.env['payment.item'].sudo().create(val)
+            else:
+                campaign_id = self.env.context.get('campaign_id', False)
+                if campaign_id:
+                    res.write({'campaign_id': campaign_id})
         return res
 
     def _get_name(self):
@@ -72,13 +84,13 @@ class Partner(models.Model):
 
     @api.constrains('vat', 'email')
     def _check_student_vals(self):
-        if self.env.user.has_group('payment_student.group_student_user'):
+        if self.env.user.has_group('payment_student.group_student_user') and not self.env.context.get('skip_student_vat_check'):
             for line in self:
-                if line.vat:
-                    student = self.search([('id','!=',self.id),('vat','=',line.vat),('company_id','=',line.company_id.id)], limit=1)
+                if line.vat and not line.is_company:
+                    student = self.search([('id','!=',line.id),('vat','=',line.vat),('company_id','=',line.company_id.id)], limit=1)
                     if student:
                         raise UserError(_('There is already a student with the same Vat Number - %s') % student.name)
-                if line.email:
-                    parent = self.search([('id','!=',self.id),('email','=',line.email),('company_id','=',line.company_id.id)], limit=1)
+                elif line.email and line.is_company:
+                    parent = self.search([('id','!=',line.id),('email','=',line.email),('company_id','=',line.company_id.id)], limit=1)
                     if parent:
                         raise UserError(_('There is already a parent with the same email - %s') % line.email)

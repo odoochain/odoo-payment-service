@@ -49,7 +49,7 @@ class PartnerOtp(models.Model):
             'subtype_id': comment,
             'res_id': self.partner_id.id,
             'recipient_ids': [(6, 0, (self.partner_id.id,))],
-            'partner_ids': [(6, 0, (self.partner_id.id,))],
+            #'partner_ids': [(6, 0, (self.partner_id.id,))],
             'subject': values['subject'],
             'email_from': values['email_from'],
             'email_to': values['email_to'],
@@ -60,7 +60,7 @@ class PartnerOtp(models.Model):
             'auto_delete': values['auto_delete'],
             'scheduled_date': values['scheduled_date'],
             'reply_to': reply_to,
-            'state': 'sent',
+            'state': 'outgoing',
             'is_notification': True,
             'notification_ids': [(0, 0, {
                 'res_partner_id': self.partner_id.id,
@@ -73,16 +73,21 @@ class PartnerOtp(models.Model):
     def send_sms(self):
         phone = self.partner_id.mobile or self.partner_id.phone
         if phone:
+            params = self.env['ir.config_parameter'].sudo().get_param
             template = self.env.ref('payment_jetcheckout_system_otp.otp_sms_template')
             note = self.env['ir.model.data']._xmlid_to_res_id('mail.mt_note')
-            provider_id = self.env['sms.provider'].get(self.company_id.id).id
+            provider = self.env['sms.provider'].get(self.company_id.id)
+            if not provider and params('paylox.sms.default'):
+                id = int(params('paylox.sms.provider', '0'))
+                provider = self.env['sms.provider'].browse(id)
+
             message = template._render_field('body', [self.id], set_lang=self.lang)[self.id]
             sms = self.env['sms.sms'].create({
                 'partner_id': self.partner_id.id,
                 'body': message,
                 'number': phone,
                 'state': 'outgoing',
-                'provider_id': provider_id,
+                'provider_id': provider.id,
             })
             self.env['mail.message'].create({
                 'res_id': self.partner_id.id,
@@ -100,4 +105,5 @@ class PartnerOtp(models.Model):
                     'failure_type': '',
                 })]
             })
-            sms.with_context(otp=True, no_exception=True)._send()
+            sms.with_context(otp=True, no_exception=True)._send() # send otp sms
+            #sms.with_context(no_exception=True)._send() # send normal sms

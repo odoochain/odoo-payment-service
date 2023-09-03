@@ -1,70 +1,175 @@
-odoo.define('payment_jetcheckout.payment_system_page', function (require) {
-"use strict";
+/** @odoo-module alias=paylox.system.page **/
+'use strict';
 
-var core = require('web.core');
-var publicWidget = require('web.public.widget');
-var rpc = require('web.rpc');
-var utils = require('web.utils');
-var dialog = require('web.Dialog');
-var paymentPage = publicWidget.registry.JetcheckoutPaymentPage;
+import core from 'web.core';
+import rpc from 'web.rpc';
+import publicWidget from 'web.public.widget';
+import dialog from 'web.Dialog';
+import utils from 'web.utils';
+import payloxPage from 'paylox.page';
+import fields from 'paylox.fields';
+import { format } from 'paylox.tools';
 
-var round_di = utils.round_decimals;
-var qweb = core.qweb;
-var _t = core._t;
+const _t = core._t;
+const qweb = core.qweb;
 
-paymentPage.include({
-    start: function () {
-        var self = this;
-        return this._super.apply(this, arguments).then(function () {
-            self.$system = document.getElementById('system');
+payloxPage.include({
+    init: function (parent, options) {
+        this._super(parent, options);
+        this.system = new fields.string({
+            default: false,
         });
     },
 
     _getParams: function () {
-        const payment_ids = [];
-        const $payable_items = $('input[type="checkbox"].payment-items:checked');
-        $payable_items.each(function() { payment_ids.push(parseInt($(this).prop('name'))); });
         const params = this._super.apply(this, arguments);
-        params['system'] = this.$system && this.$system.value || false;
-        params['payment_ids'] = payment_ids;
-        return params
-    },
-});
-
-publicWidget.registry.JetcheckoutPaymentSystemPage = publicWidget.Widget.extend({
-    selector: '.payment-system',
-
-    start: function () {
-        var self = this;
-        return this._super.apply(this, arguments).then(function () {
-            self.$currency = $('#currency');
-            self.precision = parseInt(self.$currency.data('decimal')) || 2;
-            self.$amount = $('#amount');
-            self.$amount_installment = $('#amount_installment');
-            self.$privacy = $('#privacy_policy');
-            self.$agreement = $('#distant_sale_agreement');
-            self.$membership = $('#membership_agreement');
-            self.$contact = $('#contact');
-            self.$privacy.on('click', self.onClickPrivacy.bind(self));
-            self.$agreement.on('click', self.onClickAgreement.bind(self));
-            self.$membership.on('click', self.onClickMembership.bind(self));
-            self.$contact.on('click', self.onClickContact.bind(self));
-        });
+        const $items = $('input[type="checkbox"].payment-items:checked');
+        if ($items.length) {
+            const payment_ids = [];
+            $items.each(function () { payment_ids.push(parseInt($(this).data('id'))); });
+            params['system'] = this.system.value;
+            params['payments'] = payment_ids;
+        }
+        return params;
     },
 
-    format_currency: function(value) {
-        const l10n = core._t.database.parameters;
-        const formatted = _.str.sprintf('%.' + this.precision + 'f', round_di(value, this.precision) || 0).split('.');
-        formatted[0] = utils.insert_thousand_seps(formatted[0]);
-        const amount = formatted.join(l10n.decimal_point);
-        if (this.$currency.data('position') === 'after') {
-            return amount + ' ' + this.$currency.data('symbol');
+    _checkData: function () {
+        var $items = $('input[type="checkbox"].payment-items');
+        if (!$items.length) {
+            return this._super.apply(this, arguments);
+        }
+
+        var $items = $('input[type="checkbox"].payment-items:checked');
+        if (!$items.length) {
+            this.displayNotification({
+                type: 'warning',
+                title: _t('Warning'),
+                message: _t('Please select at least one payment'),
+            });
+            this._enableButton();
+            return false;
         } else {
-            return this.$currency.data('symbol') + ' ' + amount;
+            return this._super.apply(this, arguments);
         }
     },
 
-    onClickPrivacy: function (ev) {
+});
+
+publicWidget.registry.payloxSystemPage = publicWidget.Widget.extend({
+    selector: '.payment-system',
+    xmlDependencies: ['/payment_jetcheckout_system/static/src/xml/system.xml'],
+
+    init: function (parent, options) {
+        this._super(parent, options);
+        this.currency = {
+            id: 0,
+            decimal: 2,
+            name: '',
+            separator: '.',
+            thousand: ',', 
+            position: 'after',
+            symbol: '', 
+        },
+        this.amount = new fields.float({
+            default: 0,
+        });
+        this.vat = new fields.string();
+        this.payment = {
+            privacy: new fields.element({
+                events: [['click', this._onClickPrivacy]],
+            }),
+            agreement: new fields.element({
+                events: [['click', this._onClickAgreement]],
+            }),
+            membership: new fields.element({
+                events: [['click', this._onClickMembership]],
+            }),
+            contact: new fields.element({
+                events: [['click', this._onClickContact]],
+            }),
+            item: new fields.element({
+                events: [['change', this._onChangePaid]],
+            }),
+            items: new fields.element({
+                events: [['change', this._onChangePaidAll]],
+            }),
+            tags: new fields.element({
+                events: [['click', this._onClickTag]],
+            }),
+            link: new fields.element({
+                events: [['click', this._onClickLink]],
+            }),
+            pivot: new fields.element(),
+        };
+    },
+ 
+    start: function () {
+        const self = this;
+        return this._super.apply(this, arguments).then(function () {
+            payloxPage.prototype._setCurrency.apply(self);
+            payloxPage.prototype._start.apply(self);
+            if (self.payment.item.exist) {
+                self._onChangePaid();
+            }
+        });
+    },
+
+    _onChangePaidAll: function (ev) {
+        if (this.payment.items.checked) {
+            this.payment.item.checked = true;
+        } else {
+            this.payment.item.checked = false;
+        }
+        this._onChangePaid();
+    },
+
+    _onClickTag: function (ev) {
+        const $button = $(ev.currentTarget);
+        const pid = $button.data('id');
+        $button.toggleClass('btn-light');
+
+        _.each(this.payment.item.$, function(item) {
+            const $el = $(item);
+            if ($el.data('type-id') === pid) {
+                if ($button.hasClass('btn-light')) {
+                    $el.prop('checked', false);
+                    $el.closest('tr').addClass('d-none');
+                } else {
+                    $el.prop('checked', true);
+                    $el.closest('tr').removeClass('d-none');
+                }
+            }
+        });
+        this._onChangePaid();
+    },
+
+    _onChangePaid: function (ev) {
+        if (!this.amount.exist) {
+            return;
+        }
+
+        if (ev) {
+            const $input = $(ev.currentTarget);
+            const id = $input.data('id');
+            const checked = $input.prop('checked');
+            $('input[type="checkbox"][data-id="' + id + '"].payment-items').prop('checked', checked);
+        }
+
+        const $total = $('p.payment-amount-total');
+        const $items = $('input[type="checkbox"].payment-items:checked');
+        this.payment.items.checked = !!$items.length;
+
+        let amount = 0;
+        $items.each(function() { amount += parseFloat($(this).data('amount'))});
+        
+        const event = new Event('update');
+        this.amount.value = format.float(amount);
+        this.amount.$[0].dispatchEvent(event);
+
+        $total.html(format.currency(amount, this.currency.position, this.currency.symbol, this.currency.decimal));
+    },
+
+    _onClickPrivacy: function (ev) {
         ev.stopPropagation();
         ev.preventDefault();
         rpc.query({route: '/p/privacy'}).then(function (content) {
@@ -75,7 +180,7 @@ publicWidget.registry.JetcheckoutPaymentSystemPage = publicWidget.Widget.extend(
         });
     },
 
-    onClickAgreement: function (ev) {
+    _onClickAgreement: function (ev) {
         ev.stopPropagation();
         ev.preventDefault();
         rpc.query({route: '/p/agreement'}).then(function (content) {
@@ -86,7 +191,7 @@ publicWidget.registry.JetcheckoutPaymentSystemPage = publicWidget.Widget.extend(
         });
     },
 
-    onClickMembership: function (ev) {
+    _onClickMembership: function (ev) {
         ev.stopPropagation();
         ev.preventDefault();
         rpc.query({route: '/p/membership'}).then(function (content) {
@@ -97,16 +202,45 @@ publicWidget.registry.JetcheckoutPaymentSystemPage = publicWidget.Widget.extend(
         });
     },
 
-    onClickContact: function (ev) {
+    _onClickContact: function (ev) {
         ev.stopPropagation();
         ev.preventDefault();
         rpc.query({route: '/p/contact'}).then(function (content) {
             new dialog(this, {
-                title: _t('Contact'),
+                title: _t('Contact Information'),
                 $content: $('<div/>').html(content),
             }).open();
         });
     },
+
+    _onClickLink: function (ev) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        const params = [
+            ['amount', this.amount.value],
+            ['currency', this.currency.name],
+            ['vat', this.vat.value],
+        ];
+
+        let link = window.location.href;
+        for (let i=0; i<params.length; i++) {
+            if (!i) {
+                link += '?';
+            } else {
+                link += '&';
+            }
+            link += params[i][0] + '=' + params[i][1];
+        }
+        navigator.clipboard.writeText(link);
+
+        const content = qweb.render('paylox.system.link', { link });
+        this.displayNotification({
+            type: 'info',
+            title: _t('Payment link is ready'),
+            message: utils.Markup(content),
+            sticky: true,
+        });
+    },
 });
 
-});
+export default publicWidget.registry.payloxSystemPage;

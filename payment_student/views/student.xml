@@ -7,7 +7,7 @@
         <tree editable="top" decoration-muted="active == False" sample="1">
             <field name="name"/>
             <field name="code"/>
-            <field name="company_id" groups="base.group_multi_company" options="{'no_create': True, 'no_open': True}"/>
+            <field name="company_id" groups="base.group_multi_company,base.group_system" options="{'no_create': True, 'no_open': True}"/>
             <field name="active" widget="boolean_toggle"/>
         </tree>
     </field>
@@ -20,7 +20,7 @@
         <tree editable="top" decoration-muted="active == False" sample="1">
             <field name="name"/>
             <field name="code"/>
-            <field name="company_id" groups="base.group_multi_company" options="{'no_create': True, 'no_open': True}"/>
+            <field name="company_id" groups="base.group_multi_company,base.group_system" options="{'no_create': True, 'no_open': True}"/>
             <field name="active" widget="boolean_toggle"/>
         </tree>
     </field>
@@ -34,7 +34,46 @@
             <field name="name"/>
             <field name="code"/>
             <field name="percentage"/>
-            <field name="company_id" groups="base.group_multi_company" options="{'no_create': True, 'no_open': True}"/>
+            <field name="company_id" groups="base.group_multi_company,base.group_system" options="{'no_create': True, 'no_open': True}"/>
+            <field name="active" widget="boolean_toggle"/>
+        </tree>
+    </field>
+    </record>
+
+    <record id="faculty_tree" model="ir.ui.view">
+    <field name="name">res.student.faculty.tree</field>
+    <field name="model">res.student.faculty</field>
+    <field name="arch" type="xml">
+        <tree editable="top" decoration-muted="active == False" sample="1">
+            <field name="name"/>
+            <field name="code"/>
+            <field name="company_id" groups="base.group_multi_company,base.group_system" options="{'no_create': True, 'no_open': True}"/>
+            <field name="active" widget="boolean_toggle"/>
+        </tree>
+    </field>
+    </record>
+
+    <record id="department_tree" model="ir.ui.view">
+    <field name="name">res.student.department.tree</field>
+    <field name="model">res.student.department</field>
+    <field name="arch" type="xml">
+        <tree editable="top" decoration-muted="active == False" sample="1">
+            <field name="name"/>
+            <field name="code"/>
+            <field name="company_id" groups="base.group_multi_company,base.group_system" options="{'no_create': True, 'no_open': True}"/>
+            <field name="active" widget="boolean_toggle"/>
+        </tree>
+    </field>
+    </record>
+
+    <record id="program_tree" model="ir.ui.view">
+    <field name="name">res.student.program.tree</field>
+    <field name="model">res.student.program</field>
+    <field name="arch" type="xml">
+        <tree editable="top" decoration-muted="active == False" sample="1">
+            <field name="name"/>
+            <field name="code"/>
+            <field name="company_id" groups="base.group_multi_company,base.group_system" options="{'no_create': True, 'no_open': True}"/>
             <field name="active" widget="boolean_toggle"/>
         </tree>
     </field>
@@ -47,7 +86,7 @@
         <tree editable="top" decoration-muted="active == False" sample="1">
             <field name="name"/>
             <field name="code"/>
-            <field name="company_id" groups="base.group_multi_company" options="{'no_create': True, 'no_open': True}"/>
+            <field name="company_id" groups="base.group_multi_company,base.group_system" options="{'no_create': True, 'no_open': True}"/>
             <field name="active" widget="boolean_toggle"/>
         </tree>
     </field>
@@ -60,7 +99,7 @@
         <tree editable="top" decoration-muted="active == False" sample="1">
             <field name="name"/>
             <field name="code"/>
-            <field name="company_id" groups="base.group_multi_company" options="{'no_create': True, 'no_open': True}"/>
+            <field name="company_id" groups="base.group_multi_company,base.group_system" options="{'no_create': True, 'no_open': True}"/>
             <field name="active" widget="boolean_toggle"/>
         </tree>
     </field>
@@ -76,7 +115,7 @@
             <field name="term_id" options="{'no_open': True}" domain="[('company_id','=',company_id)]"/>
             <field name="payment_type_id" options="{'no_open': True}" domain="[('company_id','=',company_id)]"/>
             <field name="amount"/>
-            <field name="company_id" groups="base.group_multi_company" options="{'no_create': True, 'no_open': True}"/>
+            <field name="company_id" groups="base.group_multi_company,base.group_system" options="{'no_create': True, 'no_open': True}"/>
             <field name="currency_id" force_save="1" invisible="1"/>
         </tree>
     </field>
@@ -90,7 +129,7 @@
             <sheet>
                 <group>
                     <field name="name"/>
-                    <field name="company_id" groups="base.group_multi_company" options="{'no_create': True, 'no_open': True}"/>
+                    <field name="company_id" groups="base.group_multi_company,base.group_system" options="{'no_create': True, 'no_open': True}"/>
                     <field name="active" invisible="1"/>
                 </group>
             </sheet>
@@ -106,7 +145,7 @@
             <sheet>
                 <group>
                     <field name="name"/>
-                    <field name="company_id" groups="base.group_multi_company" options="{'no_create': True, 'no_open': True}"/>
+                    <field name="company_id" groups="base.group_multi_company,base.group_system" options="{'no_create': True, 'no_open': True}"/>
                     <field name="active" invisible="1"/>
                 </group>
             </sheet>
@@ -122,7 +161,7 @@
             <sheet>
                 <group>
                     <field name="name"/>
-                    <field name="company_id" groups="base.group_multi_company" options="{'no_create': True, 'no_open': True}"/>
+                    <field name="company_id" groups="base.group_multi_company,base.group_system" options="{'no_create': True, 'no_open': True}"/>
                     <field name="active" invisible="1"/>
                 </group>
             </sheet>
@@ -149,7 +188,7 @@
                     </group>
                 </group>
                 <group>
-                    <field name="company_id" groups="base.group_multi_company" options="{'no_create': True, 'no_open': True}"/>
+                    <field name="company_id" groups="base.group_multi_company,base.group_system" options="{'no_create': True, 'no_open': True}"/>
                 </group>
             </sheet>
         </form>
@@ -164,7 +203,7 @@
             <sheet>
                 <group>
                     <field name="name"/>
-                    <field name="company_id" groups="base.group_multi_company" options="{'no_create': True, 'no_open': True}"/>
+                    <field name="company_id" groups="base.group_multi_company,base.group_system" options="{'no_create': True, 'no_open': True}"/>
                     <field name="active" invisible="1"/>
                 </group>
             </sheet>
@@ -193,7 +232,7 @@
     <field name="arch" type="xml">
         <search>
             <field name="name"/>
-            <field name="company_id" groups="base.group_multi_company"/>
+            <field name="company_id" groups="base.group_multi_company,base.group_system"/>
             <filter name="filterby_active" string="Active" domain="[('active', '=', True)]"/>
         </search>
     </field>
@@ -205,7 +244,7 @@
     <field name="arch" type="xml">
         <search>
             <field name="name"/>
-            <field name="company_id" groups="base.group_multi_company"/>
+            <field name="company_id" groups="base.group_multi_company,base.group_system"/>
             <filter name="filterby_active" string="Active" domain="[('active', '=', True)]"/>
         </search>
     </field>
@@ -217,7 +256,7 @@
     <field name="arch" type="xml">
         <search>
             <field name="name"/>
-            <field name="company_id" groups="base.group_multi_company"/>
+            <field name="company_id" groups="base.group_multi_company,base.group_system"/>
             <filter name="filterby_active" string="Active" domain="[('active', '=', True)]"/>
         </search>
     </field>
@@ -229,7 +268,7 @@
     <field name="arch" type="xml">
         <search>
             <field name="name"/>
-            <field name="company_id" groups="base.group_multi_company"/>
+            <field name="company_id" groups="base.group_multi_company,base.group_system"/>
             <filter name="filterby_active" string="Active" domain="[('active', '=', True)]"/>
         </search>
     </field>
@@ -241,7 +280,7 @@
     <field name="arch" type="xml">
         <search>
             <field name="name"/>
-            <field name="company_id" groups="base.group_multi_company"/>
+            <field name="company_id" groups="base.group_multi_company,base.group_system"/>
             <filter name="filterby_active" string="Active" domain="[('active', '=', True)]"/>
         </search>
     </field>

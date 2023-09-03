@@ -38,6 +38,10 @@
                     <group attrs="{'invisible': [('api_key','=',False)]}">
                         <field name="api_key" widget="CopyClipboardChar" options="{'string': 'Copy API Key'}"/>
                         <field name="secret_key" widget="CopyClipboardChar" options="{'string': 'Copy Secret Key'}"/>
+                        <br colspan="2" class="oe_edit_only" groups="base.group_system"/>
+                        <separator colspan="2" string="Hash" class="oe_edit_only" groups="base.group_system"/>
+                        <field name="hash_id" string="ID" class="oe_edit_only" groups="base.group_system"/>
+                        <field name="hash_key" string="Key" class="oe_edit_only" groups="base.group_system" widget="CopyClipboardChar" options="{'string': 'Copy Hash Key'}"/>
                     </group>
                 </group>
             </sheet>
@@ -49,12 +53,16 @@
     <field name="model">payment.transaction</field>
     <field name="inherit_id" ref="payment_jetcheckout.transaction_form"/>
     <field name="arch" type="xml">
+        <xpath expr="//div[@name='button_box']" position="inside">
+            <field name="jetcheckout_api_ok" invisible="1"/>
+        </xpath>
         <xpath expr='//group[@name="transaction_partner"]' position="attributes">
-            <attribute name="attrs">{'invisible': [('jetcheckout_api_hash', '!=', False)]}</attribute>
+            <attribute name="attrs">{'invisible': [('jetcheckout_api_ok', '!=', False)]}</attribute>
         </xpath>
         <xpath expr='//group[@name="transaction_partner"]' position="after">
-            <group name="transaction_api_partner" attrs="{'invisible': [('jetcheckout_api_hash', '=', False)]}">
+            <group name="transaction_api_partner" attrs="{'invisible': [('jetcheckout_api_ok', '=', False)]}">
                 <field name="partner_name" string="Partner"/>
+                <field name="partner_vat" string="VAT"/>
                 <label for="partner_address" string="Address"/>
                 <div class="o_address_format">
                     <field name="partner_address" placeholder="Address" class="o_address_street"/>
@@ -69,17 +77,23 @@
                 <field name="jetcheckout_api_contact" string="Contact"/>
                 <field name="jetcheckout_api_order" string="Order"/>
                 <field name="jetcheckout_api_product" string="Product"/>
+                <field name="jetcheckout_api_method" string="Method"/>
             </group>
         </xpath>
         <xpath expr='//field[@name="jetcheckout_ip_address"]' position="attributes">
-            <attribute name="attrs">{'invisible': [('jetcheckout_api_hash', '!=', False)]}</attribute>
+            <attribute name="attrs">{'invisible': ['|', ('is_paylox', '=', False), ('jetcheckout_api_method', '!=', 'card')]}</attribute>
         </xpath>
         <xpath expr='//group[@name="transaction_jetcheckout"]' position="after">
-            <group name="transaction_api" attrs="{'invisible': [('jetcheckout_api_hash', '=', False)]}">
+            <group name="transaction_api" attrs="{'invisible': [('jetcheckout_api_ok', '=', False)]}">
                 <group>
                     <field name="jetcheckout_api_id"/>
                     <field name="jetcheckout_api_hash"/>
                     <field name="jetcheckout_ip_address"/>
+                </group>
+                <group>
+                    <field name="jetcheckout_api_bank_return_url" attrs="{'invisible': [('jetcheckout_api_bank_return_url', '=', False)]}"/>
+                    <field name="jetcheckout_api_bank_webhook_url" attrs="{'invisible': [('jetcheckout_api_bank_webhook_url', '=', False)]}"/>
+                    <field name="jetcheckout_api_card_return_url" attrs="{'invisible': [('jetcheckout_api_card_return_url', '=', False)]}"/>
                 </group>
             </group>
         </xpath>

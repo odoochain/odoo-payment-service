@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields, api, SUPERUSER_ID, _
+from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 
 
-class PaymentAcquirerJetcheckoutSendType(models.Model):
+class PaymentPayloxSendType(models.Model):
     _name = 'payment.acquirer.jetcheckout.send.type'
-    _description = 'Jetcheckout System Send Types'
+    _description = 'Paylox System Send Types'
     _order = 'sequence'
     _mail_fields = {
         'subject': 'mail_subject',
@@ -32,23 +32,31 @@ class PaymentAcquirerJetcheckoutSendType(models.Model):
                 type.icon_preview = ''
 
     def _compute_message(self):
+        params = self.env['ir.config_parameter'].sudo().get_param
         for type in self:
             message = ''
             if type.code == 'email':
                 server = self.env['ir.mail_server'].search([('company_id', '=', type.company_id.id)], limit=1)
+                if not server and params('jetcheckout.email.default'):
+                    id = int(params('jetcheckout.email.server', '0'))
+                    server = self.env['ir.mail_server'].browse(id)
+ 
                 if server:
                     message = _('Emails are going to be sent on %s') % server.smtp_host
                 else:
                     message = _('There is not any outgoing mail server set')
             elif type.code == 'sms':
                 provider = self.env['sms.provider'].get(type.company_id.id)
+                if not provider and params('paylox.sms.default'):
+                    id = int(params('paylox.sms.provider', '0'))
+                    provider = self.env['sms.provider'].browse(id)
+
                 if provider:
                     message = _('SMS messages are going to be sent on %s') % provider.type.capitalize()
                 else:
                     message = _('There is not any SMS provider selected')
             else:
-                message = _('This feature is implemented soon')
-
+                message = _('This feature is going to be implemented soon')
             type.message = message
 
     def _compute_params(self):
@@ -168,17 +176,17 @@ class PaymentAcquirerJetcheckoutSendType(models.Model):
         return super().unlink()
 
 
-class PaymentAcquirerJetcheckoutSend(models.TransientModel):
+class PaymentPayloxSend(models.TransientModel):
     _name = 'payment.acquirer.jetcheckout.send'
-    _description = 'Jetcheckout System Send'
+    _description = 'Paylox System Send'
 
     def _compute_partner(self):
         for send in self:
             send.partner_ids = [(6, 0, self.env.context.get('active_ids', []))]
             send.partner_count = len(send.partner_ids)
 
-    partner_ids = fields.Many2many('res.partner', compute='_compute_partner', string='Partners')
-    partner_count = fields.Integer(compute='_compute_partner')
+    partner_ids = fields.Many2many('res.partner', compute='_compute_partner', string='Partners', compute_sudo=True)
+    partner_count = fields.Integer(compute='_compute_partner', compute_sudo=True)
     selection = fields.Many2many('payment.acquirer.jetcheckout.send.type', 'system_send_type_rel', 'send_id', 'type_id', string='Selection')
     type_ids = fields.Many2many('payment.acquirer.jetcheckout.send.type', 'system_send_type_rel', 'send_id', 'type_id', string='Types')
     mail_template_id = fields.Many2one('mail.template')
@@ -192,56 +200,78 @@ class PaymentAcquirerJetcheckoutSend(models.TransientModel):
     def send(self):
         user = self.env.user
         self = self.sudo()
-        selections = self.selection.mapped('code')
         partner_ids = self.env.context.get('partners', self.partner_ids)
+        company = self.company_id or partner_ids.mapped('company_id') or self.env.company
+        if len(company) > 1:
+            raise UserError(_('Partners must belong to only one company to get sent properly'))
+
+        authorized = self.env.ref('payment_jetcheckout_system.categ_authorized')
+        user = self.env['res.users'].search([
+            ('company_id', '=', company.id),
+            ('partner_id.category_id', 'in', [authorized.id])
+        ], limit=1) or user
+
+        selections = self.selection.mapped('code')
         mail_template = 'email' in selections and self.mail_template_id or False
         sms_template = 'sms' in selections and self.sms_template_id or False
         comment = self.env['ir.model.data']._xmlid_to_res_id('mail.mt_comment')
         note = self.env['ir.model.data']._xmlid_to_res_id('mail.mt_note')
-        mail_server_id = self.env['ir.mail_server'].search([('company_id', '=', self.company_id.id)], limit=1).id
-        sms_provider_id = self.env['sms.provider'].get(self.company_id.id).id
-        email_from = user.email_formatted
+
+        params = self.env['ir.config_parameter'].sudo().get_param
+        mail_server = self.env['ir.mail_server'].search([('company_id', '=', company.id)], limit=1)
+        if not mail_server and params('paylox.email.default'):
+            id = int(params('paylox.email.server', '0'))
+            mail_server = self.env['ir.mail_server'].browse(id)
+
+        sms_provider = self.env['sms.provider'].get(company.id)
+        if not sms_provider and params('paylox.sms.default'):
+            id = int(params('paylox.sms.provider', '0'))
+            sms_provider = self.env['sms.provider'].browse(id)
+
+        email_from = user.email_formatted or mail_server.email_formatted
+        reply_to = email_from
         mail_messages = []
         sms_messages = []
 
         for partner in partner_ids:
-            if mail_template:
-                values = mail_template.with_context(template_preview_lang=partner.lang).generate_email(partner.id, ['subject', 'body_html', 'email_from', 'reply_to', 'email_to', 'scheduled_date'])
-                mail_values = {
-                    'message_type': 'comment',
-                    'subtype_id': comment,
-                    'res_id': values['res_id'],
-                    'recipient_ids': [(6, 0, (values['res_id'],))],
-                    'partner_ids': [(6, 0, (values['res_id'],))],
-                    'subject': values['subject'],
-                    'email_from': email_from,
-                    'email_to': values['email_to'],
-                    'body': values['body'],
-                    'body_html': values['body'],
-                    'model': values['model'],
-                    'mail_server_id': mail_server_id or values['mail_server_id'],
-                    'auto_delete': values['auto_delete'],
-                    'scheduled_date': values['scheduled_date'],
-                    'reply_to': email_from,
-                    'state': 'outgoing',
-                    'is_notification': True,
-                    'notification_ids': [(0, 0, {
-                        'res_partner_id': values['res_id'],
-                        'notification_type': 'email',
-                    })]
-                }
-                mail_messages.append(mail_values)
+            if partner.payable_count > 0:
+                if mail_template:
+                    values = mail_template.with_context(template_preview_lang=partner.lang).generate_email(partner.id, ['subject', 'body_html', 'email_from', 'reply_to', 'email_to', 'scheduled_date'])
+                    mail_values = {
+                        'message_type': 'comment',
+                        'subtype_id': comment,
+                        'res_id': values['res_id'],
+                        'recipient_ids': [(6, 0, (values['res_id'],))],
+                        #'partner_ids': [(6, 0, (values['res_id'],))],
+                        'subject': values['subject'],
+                        'email_from': email_from or values['email_from'],
+                        'email_to': values['email_to'],
+                        'body': values['body'],
+                        'body_html': values['body'],
+                        'model': values['model'],
+                        'mail_server_id': mail_server.id or values['mail_server_id'],
+                        'auto_delete': values['auto_delete'],
+                        'scheduled_date': values['scheduled_date'],
+                        'reply_to': reply_to or values['reply_to'],
+                        'state': 'outgoing',
+                        'is_notification': True,
+                        'notification_ids': [(0, 0, {
+                            'res_partner_id': values['res_id'],
+                            'notification_type': 'email',
+                        })]
+                    }
+                    mail_messages.append(mail_values)
 
-            if sms_template:
-                body = sms_template._render_field('body', [partner.id], set_lang=partner.lang)[partner.id]
-                sms_values = {
-                    'partner_id': partner.id,
-                    'body': body,
-                    'number': partner.mobile,
-                    'state': 'outgoing',
-                    'provider_id': sms_provider_id,
-                }
-                sms_messages.append(sms_values)
+                if sms_template:
+                    body = sms_template._render_field('body', [partner.id], set_lang=partner.lang)[partner.id]
+                    sms_values = {
+                        'partner_id': partner.id,
+                        'body': body,
+                        'number': partner.mobile,
+                        'state': 'outgoing',
+                        'provider_id': sms_provider.id,
+                    }
+                    sms_messages.append(sms_values)
 
         if mail_messages or sms_messages:
             sent_values = {}
