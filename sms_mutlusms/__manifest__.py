@@ -11,5 +11,6 @@
     'category': 'Hidden/Tools',
     'depends': ['sms_api'],
     'data': [],
-    'auto_install': True,
+    'auto_install': False,
+    "installable": True,
 }

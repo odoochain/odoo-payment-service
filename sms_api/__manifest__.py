@@ -15,7 +15,8 @@
         'security/security.xml',
         'security/ir.model.access.csv',
     ],
-    'auto_install': True,
+    'auto_install': False,
+    "installable": True,
     'assets': {
         'web.assets_backend': [
             'sms_api/static/src/js/sms.js',
